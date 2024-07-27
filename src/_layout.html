@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="en" style="color-scheme: dark">
+<head>
+  <meta charset="UTF-8">
+  <title>{% block title %}Faster?{% endblock %}</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://kit.fontawesome.com/1903f23563.js" crossorigin="anonymous"></script>
+  <link rel="icon" type="image/x-icon" href="/static/favicon.ico">
+
+  <link href="/static/prism.css" rel="stylesheet" />
+</head>
+<body>
+  <header class="sticky top-0 z-50 border-b transition-colors border-foreground/10 bg-background/60 backdrop-blur-md h-16">
+    <nav class="mx-auto flex size-full max-w-container flex-row items-center gap-6 px-16">
+      <a class="inline-flex items-center gap-2.5 font-semibold" href="/">
+        <div class="my-auto flex flex-row items-center justify-center space-x-3">
+          <div class="relative block">
+            <i class="fa-solid fa-bolt text-yellow-500"></i>
+          </div>
+          <div class="hover:opacity-75">
+            Faster?
+          </div>
+        </div>
+      </a>
+
+      <a class="inline-flex items-center gap-1.5 rounded-lg p-2 text-muted-foreground transition-colors data-[state=open]:bg-accent hover:bg-accent hover:transition-none -mx-2 text-sm" href="/browse.html">
+        Browse
+      </a>
+
+      <a id="random" class="inline-flex items-center gap-1.5 rounded-lg p-2 text-muted-foreground transition-colors hover:bg-accent hover:transition-none -mx-2 text-sm" href="/">
+        Random
+      </a>
+
+      <a class="inline-flex items-center gap-1.5 rounded-lg p-2 text-muted-foreground transition-colors hover:bg-accent hover:transition-none -mx-2 text-sm" href="/challenge.html">
+        Challenge
+      </a>
+
+      <div class="flex flex-1 flex-row items-center justify-end gap-3">
+        <span id="score" class="text-sm cursor-default" title="Your score in no. quizzes solved correct / total quizzes">0 / 0</span>
+        <a href="http://github.com" rel="noreferrer noopener" target="_blank" aria-label="Github" class="inline-flex items-center justify-center rounded-md font-medium transition-colors duration-100 hover:bg-accent hover:text-accent-foreground p-1.5">
+          <i class="fa-brands fa-github"></i>
+        </a>
+      </div>
+    </nav>
+  </header>
+
+  <script>
+    const qIds = [
+      {% for q in questions %}"{{ q.url_id }}", {% endfor %}
+    ];
+
+    let solvedProblems = [];
+
+    (function() {
+      const random = document.getElementById("random");
+      random.href = "/q/" + qIds[Math.floor(Math.random() * qIds.length)] + ".html";
+
+      solvedProblems = localStorage.getItem("solvedProblems");
+      if (solvedProblems == null) {
+        solvedProblems = [];
+      } else {
+        solvedProblems = JSON.parse(solvedProblems);
+      }
+
+      const score = document.getElementById("score");
+      score.innerHTML = solvedProblems.length + " / " + {{ questions|length }};
+    })();
+  </script>
+
+  <main class="relative flex h-full w-full flex-col items-center justify-center overflow-hidden">
+    <div class="z-10 flex h-full w-full flex-col items-center justify-center">
+      <h1 class="mx-6 mt-12 w-[300px] bg-gradient-to-b from-black/80 to-black bg-clip-text pb-4  text-center text-5xl font-extrabold leading-tight text-transparent dark:from-white dark:to-[#AAAAAA] md:!w-full lg:text-5xl">
+        Which One is Faster?
+      </h1>
+
+      <p class="mx-6 max-h-[112px] w-[315px] text-center font-mono text-xl text-[#666666] dark:text-[#888888] md:max-h-[96px] md:w-[700px]">
+        Learning Performance Optimization Through Quizzes
+      </p>
+    </div>
+
+    <div class="container mt-5 mb-32">
+      {% block content %}{% endblock %}
+    </div>
+  </main>
+
+  <script src="/static/prism.js"></script>
+
+</body>

@@ -1,0 +1,41 @@
+{% extends "_layout.html" %}
+
+{% block content %}
+<table class="table-auto my-5 w-50 w-full">
+  <tbody>
+  {% set curr_topic = namespace(name='') %}
+  {% for q in questions %}
+    {% if q.topic != curr_topic.name %}
+    <tr class="border-b">
+      <td colspan="2" class="font-bold text-left pt-5 pb-2">{{ q.topic }}</td>
+    </tr>
+      {% set curr_topic.name = q.topic %}
+    {% endif %}
+    <tr class="border-b hover:bg-gray-700">
+      <td class="text-left py-2 px-5">
+        <a href="/q/{{ q.url_id }}.html">{{ q.title }}</a>
+      </td>
+      <td class="text-right py-2 px-5">
+        <span id="{{ q.url_id }}.solved" style="display: none" class="text-green-500 font-bold">SOLVED</span>
+        <span id="{{ q.url_id }}.try" class="">
+          <a href="/q/{{ q.url_id }}.html" class="text-blue-500 hover:text-blue-700">
+            TRY
+          </a>
+        </span>
+      </td>
+    </tr>
+  {% endfor %}
+  </tbody>
+</table>
+
+<script>
+  (function() {
+    {% for q in questions %}
+    if (solvedProblems.includes("{{ q.url_id }}")) {
+      document.getElementById("{{ q.url_id }}.solved").style.display = "inline";
+      document.getElementById("{{ q.url_id }}.try").style.display = "none";
+    }
+    {% endfor %}
+  })();
+</script>
+{% endblock %}

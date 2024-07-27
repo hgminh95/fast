@@ -1,0 +1,101 @@
+questions:
+  - title: TLB Shoot Down
+    topic: Memory
+    code1: |
+      for (int i = 0; i < 10'000'000; ++i) {
+        sum += a[i % 1'000'000];
+      }
+    code2: |
+      # Thread 1
+      for (int i = 0; i < 1'000'000; ++i) {
+        sum += a[i % 1'000'000];
+      }
+
+      # Thread 2
+      while (++cnt) {
+        if (cnt % 2 == 0)
+          x = new int[10000];
+        else
+          delete [] x;
+      }
+    answer: 1
+    explain: |
+      TODO
+  - title: Huge Page
+    topic: Memory
+    code1: |
+      #include cpp
+      int main() {
+      }
+    code2: |
+      #include cpp
+      int main() {
+      }
+    answer: 1
+    explain: |
+      TODO
+  - title: False Sharing
+    topic: Memory
+    code1: |
+      #include cpp
+      int main() {
+      }
+    code2: |
+      #include cpp
+      int main() {
+      }
+    answer: 1
+    explain: |
+      TODO
+  - title: Cache Associativity
+    topic: Memory
+    code1: |
+      #include cpp
+      int main() {
+      }
+    code2: |
+      #include cpp
+      int main() {
+      }
+    answer: 1
+    explain: |
+      TODO
+  - title: Branch Predictor 1
+    topic: CPU
+    code1: |
+      #include cpp
+      int main() {
+      }
+    code2: |
+      #include cpp
+      int main() {
+      }
+    answer: 1
+    explain: |
+      TODO
+  - title: Simd1
+    topic: SIMD
+    code1: |
+      #include cpp
+      int main() {
+      }
+    code2: |
+      #include cpp
+      int main() {
+      }
+    answer: 1
+    explain: |
+      TODO
+  - title: Test1
+    topic: Verilog
+    code1: |
+      #include cpp
+      int main() {
+      }
+    code2: |
+      #include cpp
+      int main() {
+      }
+    answer: 1
+    explain: |
+      TODO
