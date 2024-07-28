@@ -61,12 +61,8 @@ def _compile_once():
     _render_to_file("browse.html", template, ctx)
 
     _logger.info("Generating challenge.html file")
-    template = env.get_template(config.BROWSE_PAGE)
+    template = env.get_template(config.CHALLENGE_PAGE)
     _render_to_file("challenge.html", template, ctx)
-
-    _logger.info("Generating random.html file")
-    template = env.get_template(config.BROWSE_PAGE)
-    _render_to_file("random.html", template, ctx)
 
     _logger.info("Generating single question .html files")
     template = env.get_template(config.SINGLE_Q_PAGE)

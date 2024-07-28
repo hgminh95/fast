@@ -50,17 +50,52 @@ questions:
   - title: False Sharing
     topic: Memory
     code1: |
-      #include cpp
-      int main() {
+      struct Foo {
+        int x;
+        int y;
+        int z;
+      };
+      std::vector<Foo> arr(100'000);
+
+      # Run in 2 threads
+      for (int i = thread_idx; i < arr.size(); i += 2) {
+        arr[i].x = i;
+        arr[i].y = arr.size() - i;
+        arr[i].z = arr.size() + i;
       }
     code2: |
-      #include cpp
-      int main() {
+      struct alignas(64) Foo {
+        int x;
+        int y;
+        int z;
+      };
+      std::vector<Foo> arr(100'000);
+
+      # Run in 2 threads
+      for (int i = thread_idx; i < arr.size(); i += 2) {
+        arr[i].x = i;
+        arr[i].y = arr.size() - i;
+        arr[i].z = arr.size() + i;
       }
-    answer: 1
-    faster_factor: 2
+    answer: 2
+    faster_factor: 1.2
+    machine: Apple Macbook Air M2
+    code_url: https://github.com/hgminh95/fast/blob/main/bench/memory/false_sharing.cpp
     explain: |
-      TODO
+      False sharing happens when 2 cores read/write to different variables in the same cache line. In the example,
+      Foo struct only has 3 integers, which is smaller than 1 cache line (64 bytes). Therefore, multiple instances of Foo will
+      fit into a single cache line, causing the possibility for 2 cores to read/write at the same cache line.
+
+      Adding alignment for Foo struct so that 1 cache line only has 1 Foo instance (at the cost of more memory) reduce this,
+      and make the program run faster. Alternatively, you can divide the work between 2 threads differently (e.g. 0-size/2 to
+      1 thread, and the rest to another thread).
+
+      To measure effect of false sharing, you can use [perf c2c](https://man7.org/linux/man-pages/man1/perf-c2c.1.html).
+
+      References:
+
+        - [Wiki](https://en.wikipedia.org/wiki/False_sharing)
+        - [docs.kernel.org](https://docs.kernel.org/kernel-hacking/false-sharing.html)
   - title: Cache Associativity
     topic: Memory
     code1: |
@@ -73,22 +108,46 @@ questions:
       }
     answer: 1
     faster_factor: 2
+    machine: Apple Macbook Air M2
+    code_url: https://github.com/hgminh95/fast/blob/main/bench/cpu/cache_associativity.cpp
     explain: |
-      TODO
-  - title: Branch Predictor 1
+      References:
+
+        - [Wiki](https://en.wikipedia.org/wiki/Cache_placement_policies)
+  - title: Sorted Array
     topic: CPU
     code1: |
-      #include cpp
-      int main() {
+      std::vector<int> arr(100'000);
+      # then fill with random value in [0, 256]
+
+      for (auto i = 0u; i < 100'000; ++i) {
+        if (arr[i] >= 128)
+          sum += arr[i];
       }
     code2: |
-      #include cpp
-      int main() {
+      std::vector<int> arr(100'000);
+      # then fill with random value in [0, 256]
+
+      std::sort(arr, arr + arr.size());
+
+      for (auto i = 0u; i < 100'000; ++i) {
+        if (arr[i] >= 128)
+          sum += arr[i];
       }
-    answer: 1
+    answer: 2
     faster_factor: 2
+    machine: Apple Macbook Air M2
+    code_url: https://github.com/hgminh95/fast/blob/main/bench/cpu/sorted_array.cpp
     explain: |
-      TODO
+      With sorted array, the condition `arr[i] >= 128` become easy to predicted (always false at the beginning, and then
+      become always true). Without sorted array, that is harder to predict.
+
+      CPU can run multiple instructions at the same time, but branch prevents it from happenning. Therefore, CPU try to
+      predict result of the branch and execute instructions based on that prediction to keep the utilization high.
+
+      References:
+
+        - [Wiki](https://en.wikipedia.org/wiki/Branch_predictor)
   - title: Simd1
     topic: SIMD
     code1: |

@@ -10,7 +10,7 @@ A series of quizzes that compares running speed of 2 code snippets. Explanation 
     <h5 class="mb-2 text-2xl font-semibold tracking-tight text-white">Browse</h5>
     <p class="mb-3 font-normal text-gray-400">through the list of all the questions</p>
   </a>
-  <a href="/random.html" class="p-6 border rounded-lg shadow bg-gray-800 hover:bg-gray-700 border-gray-700 w-full space-y-3">
+  <a id="start-btn" href="/" class="p-6 border rounded-lg shadow bg-gray-800 hover:bg-gray-700 border-gray-700 w-full space-y-3">
     <i class="text-xl fa-solid fa-dice"></i>
     <h5 class="mb-2 text-2xl font-semibold tracking-tight text-white">Start</h5>
     <p class="mb-3 font-normal text-gray-400">on a random question</p>
@@ -21,4 +21,11 @@ A series of quizzes that compares running speed of 2 code snippets. Explanation 
     <p class="mb-3 font-normal text-gray-400">comming soon...</p>
   </a>
 </div>
+
+<script>
+  (function() {
+    const startBtn = document.getElementById("start-btn");
+    startBtn.href = "/q/" + qIds[Math.floor(Math.random() * qIds.length)] + ".html";
+  })();
+</script>
 {% endblock %}

@@ -72,25 +72,25 @@
 </script>
 
 <div class="px-6 space-y-3">
-  <div class="z-10 mt-8 flex w-full flex-col items-center justify-center gap-6 sm:mx-0 md:mb-0 lg:!translate-y-0 lg:!flex-row">
-    <div id="code1" class="relative flex h-full w-full max-w-full flex-col items-center rounded-xl border p-3 bg-black !pb-12 pt-8 md:!pb-4 md:!pt-4 hover:border-green-300">
-      <pre class="w-full h-72 text-sm"><code class="language-cpp line-numbers" data-prismjs-copy="Copy">{{ q.code1 }}</code></pre>
+  <div class="z-10 flex w-full flex-col items-center justify-center gap-6 sm:mx-0 md:mb-0 lg:!translate-y-0 lg:!flex-row">
+    <div id="code1" class="relative flex h-full w-full max-w-full flex-col items-center rounded-xl border p-3 bg-black hover:border-green-300 overflow-scroll">
+      <pre class="w-full h-80 text-sm"><code class="language-cpp line-numbers" data-prismjs-copy="Copy">{{ q.code1 }}</code></pre>
       <button onclick="select(1)" id="desc1">^ This is Faster?</button>
     </div>
   
-    <div id="code2" class="relative flex h-full w-full max-w-full flex-col items-center rounded-xl border p-3 bg-black !pb-12 pt-8 md:!pb-4 md:!pt-4 hover:border-green-300">
-      <pre class="w-full h-72 text-sm"><code class="language-cpp line-numbers" data-prismjs-copy="Copy">{{ q.code2 }}</code></pre>
+    <div id="code2" class="relative flex h-full w-full max-w-full flex-col items-center rounded-xl border p-3 bg-black hover:border-green-300 overflow-scroll">
+      <pre class="w-full h-80 text-sm"><code class="language-cpp line-numbers" data-prismjs-copy="Copy">{{ q.code2 }}</code></pre>
       <button onclick="select(2)" id="desc2">^ This is Faster?</button>
     </div>
   </div>
   {% if "machine" in q %}
   <p class="text-sm italic">
-    * The benchmark is run under <a href="/m/{{ q.machine_url_id }}.html" target="_blank" class="text-blue-500 hover:text-blue-700">{{ q.machine }}</a>
+    * The benchmark is run under <a href="/m/{{ q.machine_url_id }}.html" target="_blank" class="text-blue-500 hover:text-blue-700">{{ q.machine }}</a>.
   </p>
   {% endif %}
   {% if "code_url" in q %}
   <p class="text-sm italic">
-    * For the full benchmark code, please refer <a href="{{ q.code_url }}" target="_blank" class="text-blue-500 hover:text-blue-700">here</a>
+    * For the full benchmark code, please refer <a href="{{ q.code_url }}" target="_blank" class="text-blue-500 hover:text-blue-700">here</a>.
   </p>
   {% endif %}
 
@@ -109,10 +109,12 @@
   </div>
 
   <div id="explain-md" class="w-full border border-gray-600 rounded-lg px-5 py-3 bg-gray-800" style="display: none">
-    {{ q.explain_md | safe }}
+    <div class="prose prose-sm prose-p:my-2 prose-ul:my-2 prose-a:text-blue-500 hover:prose-a:text-blue-700 w-full text-white max-w-none break-words">
+      {{ q.explain_md | safe }}
+    </div>
 
     <p class="text-sm italic mt-3">
-      * If you disagree on anything, feel free to send a MR/issue <a href="https://github.com/hgminh95" target="_blank" class="text-blue-500 hover:text-blue-700">here</a>
+    * If you disagree on anything, feel free to <a href="https://github.com/hgminh95/fast/pulls" target="_blank" class="text-blue-500 hover:text-blue-500">send a PR</a>, or <a href="https://github.com/hgminh95/fast/issues" target="_blank" class="text-blue-500 hover:text-blue-700">open an issue</a>.
     </p>
   </div>
 
