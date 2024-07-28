@@ -6,6 +6,7 @@ import shutil
 import jinja2
 import click
 import yaml
+import markdown
 from watchdog.observers import Observer
 from watchdog.events import FileSystemEventHandler
 
@@ -27,8 +28,17 @@ def _load_data():
     with open(fp) as stream:
         data = yaml.safe_load(stream)
 
+    for m in data["machines"]:
+        m["url_id"] = m["name"].strip().replace(" ", "_").lower()
+
     for q in data["questions"]:
         q["url_id"] = q["title"].strip().replace(" ", "_").lower()
+        if "machine" in q:
+            q["machine_url_id"] = q["machine"].strip().replace(" ", "_").lower()
+
+    num_q = len(data["questions"])
+    for i in range(num_q):
+        data["questions"][i]["next_url_id"] = data["questions"][(i + 1) % num_q]["url_id"]
 
     return data
 
@@ -63,11 +73,25 @@ def _compile_once():
     base_path = os.path.join(config.BUILD_ROOT, "q")
     os.makedirs(base_path, exist_ok=True)
     for q in ctx["questions"]:
+        q["explain_md"] = markdown.markdown(q["explain"])
         _render_to_file(
             os.path.join("q", f"{q['url_id']}.html"),
             template,
             {
                 "q": q,
+                **ctx,
+            },
+        )
+
+    _logger.info("Generating single machine .html files")
+    template = env.get_template(config.SINGLE_M_PAGE)
+    os.makedirs(os.path.join(config.BUILD_ROOT, "m"), exist_ok=True)
+    for m in ctx["machines"]:
+        _render_to_file(
+            os.path.join("m", f"{m['url_id']}.html"),
+            template,
+            {
+                "m": m,
                 **ctx,
             },
         )

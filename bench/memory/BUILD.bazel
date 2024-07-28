@@ -1,0 +1,9 @@
+cc_binary(
+    name = "tlb_shootdown",
+    srcs = [
+        "tlb_shootdown.cpp",
+    ],
+    deps = [
+        "@google_benchmark//:benchmark_main",
+    ],
+)

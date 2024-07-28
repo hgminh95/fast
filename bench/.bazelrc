@@ -1,0 +1,17 @@
+common --show_timestamps
+common --color=yes
+
+build --verbose_failures
+
+build --spawn_strategy=local
+build --strategy=Genrule=local
+
+build --copt=-Wall
+
+build --cxxopt -std=c++2b
+build --host_cxxopt -std=c++2b
+build --copt=-g
+
+build:opt -c opt
+build:opt --copt=-march=native
+build:opt --copt=-mtune=native

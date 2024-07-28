@@ -1,0 +1,10 @@
+module(
+  name = "bench",
+  version = "1.0",
+  compatibility_level = 1,
+)
+
+# Due to this issue: https://github.com/bazelbuild/bazel/issues/21579
+bazel_dep(name = "apple_support", version = "1.8.1")
+
+bazel_dep(name = "google_benchmark", version = "1.8.5")

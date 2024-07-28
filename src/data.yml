@@ -1,3 +1,12 @@
+machines:
+  - name: Apple Macbook Air M2
+    specs: |
+      CPU: Apple M2
+      RAM: LPDDR5 16GB
+      Compiler: Homebrew Clang 17.0.6
+      Kernel: Darwin Kernel Version 22.2.0: Fri Nov 11 02:06:26 PST 2022; root:xnu-8792.61.2~4/RELEASE_ARM64_T8112
+      ... more to come
+
 questions:
   - title: TLB Shoot Down
     topic: Memory
@@ -19,6 +28,9 @@ questions:
           delete [] x;
       }
     answer: 1
+    faster_factor: 2
+    machine: Apple Macbook Air M2
+    code_url: https://github.com/hgminh95/fast/blob/main/bench/memory/tlb_shootdown.cpp
     explain: |
       TODO
   - title: Huge Page
@@ -32,6 +44,7 @@ questions:
       int main() {
       }
     answer: 1
+    faster_factor: 2
     explain: |
       TODO
   - title: False Sharing
@@ -45,6 +58,7 @@ questions:
       int main() {
       }
     answer: 1
+    faster_factor: 2
     explain: |
       TODO
   - title: Cache Associativity
@@ -58,6 +72,7 @@ questions:
       int main() {
       }
     answer: 1
+    faster_factor: 2
     explain: |
       TODO
   - title: Branch Predictor 1
@@ -71,6 +86,7 @@ questions:
       int main() {
       }
     answer: 1
+    faster_factor: 2
     explain: |
       TODO
   - title: Simd1
@@ -84,6 +100,7 @@ questions:
       int main() {
       }
     answer: 1
+    faster_factor: 2
     explain: |
       TODO
   - title: Test1
@@ -97,5 +114,6 @@ questions:
       int main() {
       }
     answer: 1
+    faster_factor: 2
     explain: |
       TODO

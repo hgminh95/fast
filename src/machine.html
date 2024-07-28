@@ -1,0 +1,15 @@
+{% extends "_layout.html" %}
+
+{% block title %}
+{{ m.name }}
+{% endblock %}
+
+{% block page_title %}
+<h1 class="mx-6 mt-12 w-[300px] bg-gradient-to-b from-black/80 to-black bg-clip-text pb-4 text-center text-5xl font-extrabold leading-tight text-transparent dark:from-white dark:to-[#AAAAAA] w-full">
+  {{ m.name }}
+</h1>
+{% endblock %}
+
+{% block content %}
+<pre class="container mx-auto max-w-3xl whitespace-break-spaces text-sm">{{ m.specs }}</pre>
+{% endblock %}
