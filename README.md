@@ -39,9 +39,9 @@ BM_MultiThread      511640 ns       509363 ns         1373
 
 ## Contributions
 
-- Add the website page is stored at 
-- All the data is stored at src/data.yml 
-- All the benchmark codes are stored at [bench/](bench/)
+- Add the website page templates are at [src/](src/)
+- All the data (questions, machine specs) is at [src/data.yml](src/data.yml)
+- All the benchmark codes are at [bench/](bench/)
 
 ## License
 
