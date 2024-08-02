@@ -8,45 +8,6 @@ machines:
       ... more to come
 
 questions:
-  - title: TLB Shoot Down
-    topic: Memory
-    code1: |
-      for (int i = 0; i < 10'000'000; ++i) {
-        sum += a[i % 1'000'000];
-      }
-    code2: |
-      # Thread 1
-      for (int i = 0; i < 1'000'000; ++i) {
-        sum += a[i % 1'000'000];
-      }
-
-      # Thread 2
-      while (++cnt) {
-        if (cnt % 2 == 0)
-          x = new int[10000];
-        else
-          delete [] x;
-      }
-    answer: 1
-    faster_factor: 2
-    machine: Apple Macbook Air M2
-    code_url: https://github.com/hgminh95/fast/blob/main/bench/memory/tlb_shootdown.cpp
-    explain: |
-      TODO
-  - title: Huge Page
-    topic: Memory
-    code1: |
-      #include cpp
-      int main() {
-      }
-    code2: |
-      #include cpp
-      int main() {
-      }
-    answer: 1
-    faster_factor: 2
-    explain: |
-      TODO
   - title: False Sharing
     topic: Memory
     code1: |
@@ -99,6 +60,56 @@ questions:
   - title: Cache Associativity
     topic: Memory
     code1: |
+      constexpr int N = 64;
+
+      for (auto j = 0u; j < 1024 / N; ++j) {
+        for (auto i = 0u; i < N; ++i) {
+          sum += arr1[i] + arr2[i];
+        }
+      }
+    code2: |
+      constexpr int N = 128;
+
+      for (auto j = 0u; j < 1024 / N; ++j) {
+        for (auto i = 0u; i < N; ++i) {
+          sum += arr1[i] + arr2[i];
+        }
+      }
+    answer: 2
+    faster_factor: 3.4
+    machine: Apple Macbook Air M2
+    code_url: https://github.com/hgminh95/fast/blob/main/bench/memory/cache.cpp
+    explain: |
+      References:
+
+        - [Wiki](https://en.wikipedia.org/wiki/Cache_placement_policies)
+  - title: Cache Bank Conflict
+    topic: Memory
+    code1: |
+      constexpr int N = 1;
+
+      for (auto j = 0u; j < 1024 / N; ++j) {
+        for (auto i = 0u; i < N; ++i) {
+          sum += arr1[i] + arr2[i];
+        }
+      }
+    code2: |
+      constexpr int N = 2;
+
+      for (auto j = 0u; j < 1024 / N; ++j) {
+        for (auto i = 0u; i < N; ++i) {
+          sum += arr1[i] + arr2[i];
+        }
+      }
+    answer: 1
+    faster_factor: 33.7
+    machine: Apple Macbook Air M2
+    code_url: https://github.com/hgminh95/fast/blob/main/bench/memory/cache.cpp
+    explain: |
+      TODO
+  - title: TLB Miss
+    topic: Memory
+    code1: |
       #include cpp
       int main() {
       }
@@ -108,12 +119,34 @@ questions:
       }
     answer: 1
     faster_factor: 2
-    machine: Apple Macbook Air M2
-    code_url: https://github.com/hgminh95/fast/blob/main/bench/cpu/cache_associativity.cpp
     explain: |
-      References:
+      TODO
+  - title: TLB Shoot Down
+    topic: Memory
+    code1: |
+      for (int i = 0; i < 10'000'000; ++i) {
+        sum += a[i % 1'000'000];
+      }
+    code2: |
+      # Thread 1
+      for (int i = 0; i < 1'000'000; ++i) {
+        sum += a[i % 1'000'000];
+      }
 
-        - [Wiki](https://en.wikipedia.org/wiki/Cache_placement_policies)
+      # Thread 2
+      while (++cnt) {
+        if (cnt % 2 == 0)
+          x = new int[10000];
+        else
+          delete [] x;
+      }
+    answer: 1
+    faster_factor: 2
+    machine: Apple Macbook Air M2
+    code_url: https://github.com/hgminh95/fast/blob/main/bench/memory/tlb_shootdown.cpp
+    explain: |
+      TODO
+
   - title: Sorted Array
     topic: CPU
     code1: |
@@ -135,7 +168,7 @@ questions:
           sum += arr[i];
       }
     answer: 2
-    faster_factor: 2
+    faster_factor: 2.4
     machine: Apple Macbook Air M2
     code_url: https://github.com/hgminh95/fast/blob/main/bench/cpu/sorted_array.cpp
     explain: |
@@ -148,6 +181,191 @@ questions:
       References:
 
         - [Wiki](https://en.wikipedia.org/wiki/Branch_predictor)
+  - title: Modulo
+    topic: CPU
+    code1: |
+      std::array<int, 5> modulos{11, 107, 1013, 19211, 81727};
+
+      for (auto i = 0u; i < arr.size(); ++i) {
+        sum += arr[i] % modulos[i * 5 / arr.size()];
+      }
+    code2: |
+      for (auto i = 0u; i < arr.size(); ++i) {
+        switch (i * 5 / arr.size()) {
+          case 0:
+            sum += arr[i] % 11;
+            break;
+          case 1:
+            sum += arr[i] % 107;
+            break;
+          case 2:
+            sum += arr[i] % 1013;
+            break;
+          case 3:
+            sum += arr[i] % 19211;
+            break;
+          case 4:
+            sum += arr[i] % 81727;
+            break;
+        }
+      }
+    answer: 2
+    faster_factor: 1.3
+    machine: Apple Macbook Air M2
+    code_url: https://github.com/hgminh95/fast/blob/main/bench/cpu/modulo.cpp
+    explain: |
+      Integer modulo (and division) operation in CPU is slow. But there is a trick to convert
+      [division by a constant into multiplication](https://en.wikipedia.org/wiki/Division_algorithm#Division_by_a_constant).
+
+      Beware of the branching penalty though. The above example works because the branch is easily predicted.
+
+      In case where you don't know the divisor in compile time, but you know same value is gonna be used multiple times,
+      you can use something like [libdivide](https://libdivide.com/)
+
+      References:
+      
+      - [Division Algorithm - Wiki](https://en.wikipedia.org/wiki/Division_algorithm)
+  - title: Power Of Two
+    topic: CPU
+    code1: |
+      int foo(int x) {
+        return x % 3; 
+      }
+    code2: |
+      int foo(int x) {
+        return x % 128; 
+      }
+    answer: 2
+    faster_factor: 1.2
+    machine: Apple Macbook Air M2
+    code_url: https://github.com/hgminh95/fast/blob/main/bench/cpu/power_of_two.cpp
+    explain: |
+      Arithmetic operation with power of two can usually be converted into bit shift, or mask
+      operation, which is quite cheap
+
+      - x * 2^n == x << n
+      - x % 2^n == x & (1 << n - 1)
+
+  - title: Dependency
+    topic: CPU
+    code1: |
+      for (auto i = 0u; i < 90; ++i) {
+        sum *= 10;
+        sum += a[i];
+      }
+    code2: |
+      for (auto i = 0u; i < 90; i += 3) {
+        sum *= 1000;
+        sum += a[i] * 100;
+        sum += a[i + 1] * 10;
+        sum += a[i + 2];
+      }
+    answer: 2
+    faster_factor: 1.3
+    machine: Apple Macbook Air M2
+    code_url: https://github.com/hgminh95/fast/blob/main/bench/cpu/dependency.cpp
+    explain: |
+      The first code has to be run sequentially pretty much, since the add operation
+      must be done after * 10 operation. While in the 2nd code, there are 3 add
+      operation that can be done in any order, thus enable more parallelism in CPU.
+
+      References:
+        - [Superscalar Processor - Wiki](https://en.wikipedia.org/wiki/Superscalar_processor)
+  - title: False Dependency
+    topic: CPU
+    code1: |
+      #include
+    code2: |
+      #include
+    answer: 2
+    faster_factor: 2
+    machine: Apple Macbook Air M2
+    code_url: https://github.com/hgminh95/fast/blob/main/bench/cpu/sorted_array.cpp
+    explain: |
+      TODO
+  - title: Register Spill
+    topic: CPU
+    code1: |
+      // arr.size == 1'000'000
+      constexpr int N = 4;
+
+      for (auto i = 0u; i < arr.size(); i += N) {
+        for (int j = 0; j < N; ++j) {
+          sum += arr[i + j] * (i + j);
+        }
+      }
+    code2: |
+      // arr.size == 1'000'000
+      constexpr int N = 8;
+
+      for (auto i = 0u; i < arr.size(); i += N) {
+        for (int j = 0; j < N; ++j) {
+          sum += arr[i + j] * (i + j);
+        }
+      }
+    answer: 1
+    faster_factor: 3.7
+    machine: Apple Macbook Air M2
+    code_url: https://github.com/hgminh95/fast/blob/main/bench/cpu/register.cpp
+    explain: |
+      TODO
+
+  - title: Inline vs Function Call
+    topic: C++
+    code1: |
+      __attribute__(always_inline) int foo(int x, int y) {
+        return x + y;
+      }
+    code2: |
+      __attribute__(noinline) int foo(int x, int y) {
+        return x + y;
+      }
+    answer: 1
+    faster_factor: "?"
+    machine: Apple Macbook Air M2
+    code_url: https://github.com/hgminh95/fast/blob/main/bench/cpp/function_call.cpp
+    explain: |
+      Inline function is always faster.
+
+      TODO
+
+  - title: Function Call vs Virtual Function Call
+    topic: C++
+    code1: |
+      #include
+    code2: |
+      #include
+    answer: 2
+    faster_factor: "?"
+    machine: Apple Macbook Air M2
+    code_url: https://github.com/hgminh95/fast/blob/main/bench/cpp/function_call.cpp
+    explain: |
+      TODO
+
+  - title: Different Type of Static Variable
+    topic: C++
+    code1: |
+      struct Foo {
+        int Add(int x) {
+          static Bar a;
+          return a += x;
+        }
+      };
+    code2: |
+      struct Foo {
+        static inline int a{0};
+
+        int Add(int x) {
+          return a += x;
+        }
+      };
+    answer: 2
+    faster_factor: "?"
+    machine: Apple Macbook Air M2
+    code_url: https://github.com/hgminh95/fast/blob/main/bench/cpu/static_variable.cpp
+    explain: |
+      TODO
+
   - title: Simd1
     topic: SIMD
     code1: |
@@ -162,6 +380,7 @@ questions:
     faster_factor: 2
     explain: |
       TODO
+
   - title: Test1
     topic: Verilog
     code1: |

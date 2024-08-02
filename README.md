@@ -37,6 +37,8 @@ BM_SingleThread    7807172 ns      7790222 ns           90
 BM_MultiThread      511640 ns       509363 ns         1373
 ```
 
+**NOTE**: Most benchmark are not properly vested at the moment, the number could be misleading.
+
 ## Contributions
 
 - Add the website page templates are at [src/](src/)

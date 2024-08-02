@@ -1,0 +1,7 @@
+load("//common:bazel.bzl", "bench")
+
+bench(name = "sorted_array")
+bench(name = "modulo")
+bench(name = "power_of_two")
+bench(name = "dependency")
+bench(name = "register")

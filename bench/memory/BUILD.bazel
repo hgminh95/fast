@@ -1,19 +1,5 @@
-cc_binary(
-    name = "tlb_shootdown",
-    srcs = [
-        "tlb_shootdown.cpp",
-    ],
-    deps = [
-        "@google_benchmark//:benchmark_main",
-    ],
-)
+load("//common:bazel.bzl", "bench")
 
-cc_binary(
-    name = "false_sharing",
-    srcs = [
-        "false_sharing.cpp",
-    ],
-    deps = [
-        "@google_benchmark//:benchmark_main",
-    ],
-)
+bench(name = "tlb_shootdown")
+bench(name = "false_sharing")
+bench(name = "cache")

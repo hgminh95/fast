@@ -151,11 +151,11 @@
   <main class="relative flex min-h-screen w-full flex-col items-center overflow-hidden">
     <div class="z-10 flex h-full w-full flex-col items-center justify-center">
       {% block page_title %}
-      <h1 class="mx-6 mt-12 w-[300px] bg-gradient-to-b from-black/80 to-black bg-clip-text pb-4  text-center text-5xl font-extrabold leading-tight text-transparent dark:from-white dark:to-[#AAAAAA] md:!w-full lg:text-5xl">
+      <h1 class="mx-6 mt-12 w-[300px] bg-gradient-to-b bg-clip-text pb-4  text-center text-5xl font-extrabold leading-tight text-transparent from-white to-[#AAAAAA] md:!w-full lg:text-5xl">
         Which One is Faster?
       </h1>
 
-      <p class="mx-6 max-h-[112px] w-[315px] text-center font-mono text-xl text-[#666666] dark:text-[#888888] md:max-h-[96px] md:w-[700px]">
+      <p class="mx-6 max-h-[112px] w-[315px] text-center font-mono text-xl text-[#888888] md:max-h-[96px] md:w-[700px]">
         Learning Performance Optimization Through Quizzes
       </p>
       {% endblock %}
@@ -167,7 +167,7 @@
   </main>
   <script src="/static/prism.js"></script>
 
-  <footer class="relative bg-[#FAFAFA] pb-[env(safe-area-inset-bottom)] dark:bg-[#111111]">
+  <footer class="relative pb-[env(safe-area-inset-bottom)] bg-[#111111]">
     <hr class="border-neutral-800"/>
     <div class="mx-auto flex max-w-[90rem] justify-center py-12 text-white justify-center pl-[max(env(safe-area-inset-left),1.5rem)] pr-[max(env(safe-area-inset-right),1.5rem)]">
       Footer

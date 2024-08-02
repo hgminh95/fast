@@ -1,0 +1,4 @@
+load("//common:bazel.bzl", "bench")
+
+bench(name = "function_call")
+bench(name = "static_variable")
