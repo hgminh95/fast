@@ -1,8 +1,25 @@
 #include <benchmark/benchmark.h>
 
+#include "common/array.h"
+
 #include <thread>
 #include <atomic>
 #include <chrono>
+
+template <size_t N>
+static void BM_TlbMiss(benchmark::State& state) {
+  constexpr int PAGE_SIZE = 16384;
+  constexpr int PAGE_SIZE_IN_INT = PAGE_SIZE / 4;
+  auto arr = MakeArr(PAGE_SIZE_IN_INT * 8192 * 4);
+
+  for (auto _ : state) {
+    int sum{0};
+    for (int i = 0u; i < 100'000; ++i) {
+      sum += arr[rand() % (PAGE_SIZE_IN_INT * N)];
+    }
+    benchmark::DoNotOptimize(sum);
+  }
+}
 
 static void BM_SingleThread(benchmark::State& state) {
   std::vector<int> arr(100'000'000, 1);
@@ -43,6 +60,11 @@ static void BM_MultiThread(benchmark::State& state) {
   t.join();
 }
 
+BENCHMARK(BM_TlbMiss<1>);
+BENCHMARK(BM_TlbMiss<512>);
+BENCHMARK(BM_TlbMiss<1024>);
+BENCHMARK(BM_TlbMiss<2048>);
+BENCHMARK(BM_TlbMiss<8192>);
 BENCHMARK(BM_SingleThread);
 BENCHMARK(BM_MultiThread);
 

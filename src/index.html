@@ -2,13 +2,13 @@
 
 {% block content %}
 <p class="text-center text-[#888888] my-8">
-A series of quizzes that compares running speed of 2 code snippets. Explanation included.
+A series of questions that compare running speed of 2 code snippets. Explanation included.
 </p>
 <div class="container grid grid-cols-2 gap-5 max-w-2xl mx-auto mt-12">
   <a href="/browse.html" class="p-6 border rounded-lg shadow bg-gray-800 hover:bg-gray-700 border-gray-700 w-full space-y-3">
     <i class="text-xl fa-solid fa-list"></i>
     <h5 class="mb-2 text-2xl font-semibold tracking-tight text-white">Browse</h5>
-    <p class="mb-3 font-normal text-gray-400">through the list of all the questions</p>
+    <p class="mb-3 font-normal text-gray-400">through the list of all {{ questions|length }} questions</p>
   </a>
   <a id="start-btn" href="/" class="p-6 border rounded-lg shadow bg-gray-800 hover:bg-gray-700 border-gray-700 w-full space-y-3">
     <i class="text-xl fa-solid fa-dice"></i>

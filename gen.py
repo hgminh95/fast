@@ -64,6 +64,10 @@ def _compile_once():
     template = env.get_template(config.CHALLENGE_PAGE)
     _render_to_file("challenge.html", template, ctx)
 
+    _logger.info("Generating faq.html file")
+    template = env.get_template(config.FAQ_PAGE)
+    _render_to_file("faq.html", template, ctx)
+
     _logger.info("Generating single question .html files")
     template = env.get_template(config.SINGLE_Q_PAGE)
     base_path = os.path.join(config.BUILD_ROOT, "q")

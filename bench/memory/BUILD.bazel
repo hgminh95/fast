@@ -1,5 +1,5 @@
 load("//common:bazel.bzl", "bench")
 
-bench(name = "tlb_shootdown")
+bench(name = "tlb")
 bench(name = "false_sharing")
 bench(name = "cache")

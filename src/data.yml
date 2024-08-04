@@ -8,6 +8,84 @@ machines:
       ... more to come
 
 questions:
+  - title: Memory vs Compute
+    topic: Memory
+    code1: |
+      #include cpp
+      int main() {
+      }
+    code2: |
+      #include cpp
+      int main() {
+      }
+    answer: 1
+    faster_factor: 2
+    explain: |
+      TODO
+  - title: TLB Miss
+    topic: Memory
+    code1: |
+      #include cpp
+      int main() {
+      }
+    code2: |
+      #include cpp
+      int main() {
+      }
+    answer: 1
+    faster_factor: 2
+    explain: |
+      References:
+
+      - [Translation Lookaside Buffer](https://en.wikipedia.org/wiki/Translation_lookaside_buffer)
+  - title: Zero Initialized Array
+    topic: Memory
+    code1: |
+      #include cpp
+      int main() {
+      }
+    code2: |
+      #include cpp
+      int main() {
+      }
+    answer: 1
+    faster_factor: 2
+    explain: |
+      References:
+
+      - [Minor Page Fault](https://en.wikipedia.org/wiki/Page_fault#Minor)
+  - title: Cache vs Memory
+    topic: Memory
+    code1: |
+      #include cpp
+      int main() {
+      }
+    code2: |
+      #include cpp
+      int main() {
+      }
+    answer: 1
+    faster_factor: 2
+    explain: |
+      References:
+
+      - [Minor Page Fault](https://en.wikipedia.org/wiki/Page_fault#Minor)
+  - title: Prefetch
+    topic: Memory
+    code1: |
+      #include cpp
+      int main() {
+      }
+    code2: |
+      #include cpp
+      int main() {
+      }
+    answer: 1
+    faster_factor: 2
+    explain: |
+      References:
+
+      - [Minor Page Fault](https://en.wikipedia.org/wiki/Page_fault#Minor)
   - title: False Sharing
     topic: Memory
     code1: |
@@ -57,6 +135,20 @@ questions:
 
         - [Wiki](https://en.wikipedia.org/wiki/False_sharing)
         - [docs.kernel.org](https://docs.kernel.org/kernel-hacking/false-sharing.html)
+  - title: True Sharing
+    topic: Memory
+    code1: |
+      constexpr int N = 128;
+    code2: |
+      constexpr int N = 128;
+    answer: 2
+    faster_factor: 3.4
+    machine: Apple Macbook Air M2
+    code_url: https://github.com/hgminh95/fast/blob/main/bench/memory/cache.cpp
+    explain: |
+      References:
+
+        - [Wiki](https://en.wikipedia.org/wiki/Cache_placement_policies)
   - title: Cache Associativity
     topic: Memory
     code1: |
@@ -107,18 +199,16 @@ questions:
     code_url: https://github.com/hgminh95/fast/blob/main/bench/memory/cache.cpp
     explain: |
       TODO
-  - title: TLB Miss
+  - title: Memory Bank Conflict
     topic: Memory
     code1: |
-      #include cpp
-      int main() {
-      }
+      constexpr int N = 1;
     code2: |
-      #include cpp
-      int main() {
-      }
+      constexpr int N = 2;
     answer: 1
-    faster_factor: 2
+    faster_factor: 33.7
+    machine: Apple Macbook Air M2
+    code_url: https://github.com/hgminh95/fast/blob/main/bench/memory/cache.cpp
     explain: |
       TODO
   - title: TLB Shoot Down
@@ -140,6 +230,54 @@ questions:
         else
           delete [] x;
       }
+    answer: 1
+    faster_factor: 2
+    machine: Apple Macbook Air M2
+    code_url: https://github.com/hgminh95/fast/blob/main/bench/memory/tlb_shootdown.cpp
+    explain: |
+      TODO
+  - title: Paused
+    topic: Memory
+    code1: |
+      a
+    code2: |
+      b
+    answer: 1
+    faster_factor: 2
+    machine: Apple Macbook Air M2
+    code_url: https://github.com/hgminh95/fast/blob/main/bench/memory/tlb_shootdown.cpp
+    explain: |
+      TODO
+  - title: Misalign
+    topic: Memory
+    code1: |
+      a
+    code2: |
+      b
+    answer: 1
+    faster_factor: 2
+    machine: Apple Macbook Air M2
+    code_url: https://github.com/hgminh95/fast/blob/main/bench/memory/tlb_shootdown.cpp
+    explain: |
+      TODO
+  - title: Recharge
+    topic: Memory
+    code1: |
+      a
+    code2: |
+      b
+    answer: 1
+    faster_factor: 2
+    machine: Apple Macbook Air M2
+    code_url: https://github.com/hgminh95/fast/blob/main/bench/memory/tlb_shootdown.cpp
+    explain: |
+      TODO
+  - title: Mooore Write
+    topic: Memory
+    code1: |
+      a
+    code2: |
+      b
     answer: 1
     faster_factor: 2
     machine: Apple Macbook Air M2
@@ -181,6 +319,7 @@ questions:
       References:
 
         - [Wiki](https://en.wikipedia.org/wiki/Branch_predictor)
+        - [Why is processing a sorted array faster than processing an unsorted array?](https://stackoverflow.com/questions/11227809/why-is-processing-a-sorted-array-faster-than-processing-an-unsorted-array)
   - title: Modulo
     topic: CPU
     code1: |
@@ -270,8 +409,21 @@ questions:
       operation that can be done in any order, thus enable more parallelism in CPU.
 
       References:
-        - [Superscalar Processor - Wiki](https://en.wikipedia.org/wiki/Superscalar_processor)
+
+      - [Superscalar Processor - Wiki](https://en.wikipedia.org/wiki/Superscalar_processor)
   - title: False Dependency
+    topic: CPU
+    code1: |
+      #include
+    code2: |
+      #include
+    answer: 2
+    faster_factor: 2
+    machine: Apple Macbook Air M2
+    code_url: https://github.com/hgminh95/fast/blob/main/bench/cpu/sorted_array.cpp
+    explain: |
+      TODO
+  - title: No Branch
     topic: CPU
     code1: |
       #include
@@ -309,6 +461,56 @@ questions:
     code_url: https://github.com/hgminh95/fast/blob/main/bench/cpu/register.cpp
     explain: |
       TODO
+  - title: PTWRITE
+    topic: CPU
+    code1: |
+      #include
+    code2: |
+      #include
+    answer: 2
+    faster_factor: 2
+    machine: Apple Macbook Air M2
+    code_url: https://github.com/hgminh95/fast/blob/main/bench/cpu/sorted_array.cpp
+    explain: |
+      TODO
+  - title: Pointer Chasing
+    topic: CPU
+    code1: |
+      #include
+    code2: |
+      #include
+    answer: 2
+    faster_factor: 2
+    machine: Apple Macbook Air M2
+    code_url: https://github.com/hgminh95/fast/blob/main/bench/cpu/sorted_array.cpp
+    explain: |
+      TODO
+  - title: Store-To-Loading Forwarding
+    topic: CPU
+    code1: |
+      #include
+    code2: |
+      #include
+    answer: 2
+    faster_factor: 2
+    machine: Apple Macbook Air M2
+    code_url: https://github.com/hgminh95/fast/blob/main/bench/cpu/sorted_array.cpp
+    explain: |
+      TODO
+  - title: Async
+    topic: CPU
+    code1: |
+      #include
+    code2: |
+      #include
+    answer: 2
+    faster_factor: 2
+    machine: Apple Macbook Air M2
+    code_url: https://github.com/hgminh95/fast/blob/main/bench/cpu/sorted_array.cpp
+    explain: |
+      TODO
+
+
 
   - title: Inline vs Function Call
     topic: C++
@@ -366,6 +568,110 @@ questions:
     explain: |
       TODO
 
+  - title: Signed vs Unsigned
+    topic: C++
+    code1: |
+      struct Foo {
+    code2: |
+      struct Foo {
+    answer: 2
+    faster_factor: "?"
+    machine: Apple Macbook Air M2
+    code_url: https://github.com/hgminh95/fast/blob/main/bench/cpu/static_variable.cpp
+    explain: |
+      TODO
+
+  - title: Shared Pointer
+    topic: C++
+    code1: |
+      struct Foo {
+    code2: |
+      struct Foo {
+    answer: 2
+    faster_factor: "?"
+    machine: Apple Macbook Air M2
+    code_url: https://github.com/hgminh95/fast/blob/main/bench/cpu/static_variable.cpp
+    explain: |
+      TODO
+
+  - title: Smol
+    topic: C++
+    code1: |
+      struct Foo {
+    code2: |
+      struct Foo {
+    answer: 2
+    faster_factor: "?"
+    machine: Apple Macbook Air M2
+    code_url: https://github.com/hgminh95/fast/blob/main/bench/cpu/static_variable.cpp
+    explain: |
+      TODO
+
+  - title: Chaining Function
+    topic: C++
+    code1: |
+      struct Foo {
+    code2: |
+      struct Foo {
+    answer: 2
+    faster_factor: "?"
+    machine: Apple Macbook Air M2
+    code_url: https://github.com/hgminh95/fast/blob/main/bench/cpu/static_variable.cpp
+    explain: |
+      TODO
+
+  - title: ABI
+    topic: C++
+    code1: |
+      struct Foo {
+    code2: |
+      struct Foo {
+    answer: 2
+    faster_factor: "?"
+    machine: Apple Macbook Air M2
+    code_url: https://github.com/hgminh95/fast/blob/main/bench/cpu/static_variable.cpp
+    explain: |
+      TODO
+
+  - title: Batch Processing
+    topic: C++
+    code1: |
+      struct Foo {
+    code2: |
+      struct Foo {
+    answer: 2
+    faster_factor: "?"
+    machine: Apple Macbook Air M2
+    code_url: https://github.com/hgminh95/fast/blob/main/bench/cpu/static_variable.cpp
+    explain: |
+      TODO
+
+  - title: Math Functions
+    topic: C++
+    code1: |
+      struct Foo {
+    code2: |
+      struct Foo {
+    answer: 2
+    faster_factor: "?"
+    machine: Apple Macbook Air M2
+    code_url: https://github.com/hgminh95/fast/blob/main/bench/cpu/static_variable.cpp
+    explain: |
+      TODO
+
+  - title: Loop Reordering
+    topic: C++
+    code1: |
+      struct Foo {
+    code2: |
+      struct Foo {
+    answer: 2
+    faster_factor: "?"
+    machine: Apple Macbook Air M2
+    code_url: https://github.com/hgminh95/fast/blob/main/bench/cpu/static_variable.cpp
+    explain: |
+      TODO
+
   - title: Simd1
     topic: SIMD
     code1: |
@@ -381,8 +687,163 @@ questions:
     explain: |
       TODO
 
-  - title: Test1
-    topic: Verilog
+  - title: Moving Data
+    topic: GPU
+    code1: |
+      #include cpp
+      int main() {
+      }
+    code2: |
+      #include cpp
+      int main() {
+      }
+    answer: 1
+    faster_factor: 2
+    explain: |
+      TODO
+  - title: Coalesced Access
+    topic: GPU
+    code1: |
+      #include cpp
+      int main() {
+      }
+    code2: |
+      #include cpp
+      int main() {
+      }
+    answer: 1
+    faster_factor: 2
+    explain: |
+      TODO
+  - title: Misaligned Access
+    topic: GPU
+    code1: |
+      #include cpp
+      int main() {
+      }
+    code2: |
+      #include cpp
+      int main() {
+      }
+    answer: 1
+    faster_factor: 2
+    explain: |
+      TODO
+  - title: The Swizzle Operator
+    topic: GPU
+    code1: |
+      #include cpp
+      int main() {
+      }
+    code2: |
+      #include cpp
+      int main() {
+      }
+    answer: 1
+    faster_factor: 2
+    explain: |
+      TODO
+  - title: Kernel Fusion
+    topic: GPU
+    code1: |
+      #include cpp
+      int main() {
+      }
+    code2: |
+      #include cpp
+      int main() {
+      }
+    answer: 1
+    faster_factor: 2
+    explain: |
+      TODO
+  - title: Kernel Fission
+    topic: GPU
+    code1: |
+      #include cpp
+      int main() {
+      }
+    code2: |
+      #include cpp
+      int main() {
+      }
+    answer: 1
+    faster_factor: 2
+    explain: |
+      TODO
+
+  - title: Pipelining
+    topic: RTL
+    code1: |
+      #include cpp
+      int main() {
+      }
+    code2: |
+      #include cpp
+      int main() {
+      }
+    answer: 1
+    faster_factor: 2
+    explain: |
+      TODO
+  - title: Removing Pipeline Register
+    topic: RTL
+    code1: |
+      #include cpp
+      int main() {
+      }
+    code2: |
+      #include cpp
+      int main() {
+      }
+    answer: 1
+    faster_factor: 2
+    explain: |
+      TODO
+  - title: Register Layers
+    topic: RTL
+    code1: |
+      #include cpp
+      int main() {
+      }
+    code2: |
+      #include cpp
+      int main() {
+      }
+    answer: 1
+    faster_factor: 2
+    explain: |
+      TODO
+  - title: Register Balancing
+    topic: RTL
+    code1: |
+      #include cpp
+      int main() {
+      }
+    code2: |
+      #include cpp
+      int main() {
+      }
+    answer: 1
+    faster_factor: 2
+    explain: |
+      TODO
+  - title: Control-based Logic Reuse
+    topic: RTL
+    code1: |
+      #include cpp
+      int main() {
+      }
+    code2: |
+      #include cpp
+      int main() {
+      }
+    answer: 1
+    faster_factor: 2
+    explain: |
+      TODO
+  - title: Priority Encoders
+    topic: RTL
     code1: |
       #include cpp
       int main() {
