@@ -68,90 +68,283 @@
       score.innerHTML = "Score: " + solvedProblems.length + " / " + {{ questions|length }};
     })();
   </script>
-
+  
   <style>
-.lines {
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  height: 100%;
-  margin: auto;
-  width: 90vw;
+/* Copy from turbo.build */
+.turbohero-background_container__C38kt {
+    position: absolute;
+    z-index: -6;
+    overflow: hidden;
+    inset: 0;
+    transition: perspective 3s ease 0s
 }
 
-.line {
-  position: absolute;
-  width: 1px;
-  height: 100%;
-  top: 0;
-  left: 50%;
-  background: rgba(255, 255, 255, 0);
-  overflow: hidden;
-}
-.line::after {
-  content: "";
-  display: block;
-  position: absolute;
-  height: 10vh;
-  width: 100%;
-  top: -50%;
-  left: 0;
-  background: linear-gradient(to bottom, rgba(255, 255, 255, 0) 0%, #aaaaaa 75%, #bbbbbb 100%);
-  -webkit-animation: drop 30s 0s infinite;
-          animation: drop 30s 0s infinite;
-  -webkit-animation-fill-mode: forwards;
-          animation-fill-mode: forwards;
-  -webkit-animation-timing-function: cubic-bezier(0.4, 0.26, 0, 0.97);
-          animation-timing-function: cubic-bezier(0.4, 0.26, 0, 0.97);
-}
-.line:nth-child(1)::after {
-  -webkit-animation-delay: 11s;
-          animation-delay: 11s;
-}
-.line:nth-child(2)::after {
-  -webkit-animation-delay: 3s;
-          animation-delay: 3s;
-}
-.line:nth-child(3)::after {
-  -webkit-animation-delay: 5s;
-          animation-delay: 5s;
-}
-.line:nth-child(4)::after {
-  -webkit-animation-delay: 7s;
-          animation-delay: 7s;
+.turbohero-background_lines__Ptjks {
+    --right: #f8cde8;
+    --left: #b9ddff;
+    position: absolute;
+    width: 200vw;
+    margin-left: -50%;
+    transform: translateY(0);
+    background-image: linear-gradient(to right,var(--left) 45%,transparent 50%,var(--right) 55%);
+    -webkit-mask-image: linear-gradient(90deg,#000 2px,transparent 0),linear-gradient(180deg,#000 2px,transparent 0);
+    mask-image: linear-gradient(90deg,#000 2px,transparent 0),linear-gradient(180deg,#000 2px,transparent 0);
+    -webkit-mask-size: 60px 60px;
+    mask-size: 60px 60px;
+    overflow: hidden;
+    -webkit-mask-repeat: repeat;
+    mask-repeat: repeat;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    inset: -100% 0;
+    background-position-y: 100%;
+    -webkit-mask-position: 50% 0;
+    mask-position: 50% 0;
+    animation: turbohero-background_go-up__DdE0Y 240s linear infinite
 }
 
-@-webkit-keyframes drop {
-  0% {
-    top: -50%;
-  }
-  100% {
-    top: 110%;
-  }
+@media (min-width: 1024px) {
+    .turbohero-background_lines__Ptjks {
+        animation-duration: 120s;
+        -webkit-mask-size: 80px 80px;
+        mask-size: 80px 80px
+    }
 }
 
-@keyframes drop {
-  0% {
-    top: -50%;
-  }
-  100% {
-    top: 110%;
-  }
+.dark .turbohero-background_lines__Ptjks {
+    --right: #4c2638;
+    --left: #223b67
 }
+
+@keyframes turbohero-background_go-up__DdE0Y {
+    0% {
+        transform: translateY(0)
+    }
+
+    to {
+        transform: translateY(calc(50% + 28px))
+    }
+}
+
+.turbohero-background_pulse__I0cab:before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    animation: turbohero-background_pulse-frames__RGlJf 8s ease-out infinite;
+    animation-delay: 0s;
+    background: transparent linear-gradient(to top,transparent 45%,var(--pulse-color) 50%,transparent 90%) no-repeat;
+    z-index: 211;
+    animation-delay: var(--delay)
+}
+
+@keyframes turbohero-background_pulse-frames__RGlJf {
+    0% {
+        transform: translateY(0)
+    }
+
+    50% {
+        transform: translateY(200%)
+    }
+
+    to {
+        transform: translateY(200%)
+    }
+}
+
+@media (prefers-reduced-motion) {
+    .turbohero-background_lines__Ptjks,.turbohero-background_pulse__I0cab:before {
+        animation: none
+    }
+}
+
+._no-sidebar__leftLights__RqgLF:before {
+    width: 25%;
+    height: 900px;
+    left: -12.5%;
+    top: calc(50% - 900px / 2 + 151px);
+    opacity: .2;
+    background: linear-gradient(180deg,#77b8ff,rgba(42,138,246,.4));
+    transform: rotate(-15deg);
+    border-bottom-left-radius: 25% 25%;
+    border-bottom-right-radius: 25% 25%;
+    border-top-left-radius: 100% 100%;
+    border-top-right-radius: 100% 100%;
+    z-index: 200
+}
+
+._no-sidebar__leftLights__RqgLF:after,._no-sidebar__leftLights__RqgLF:before {
+    content: "";
+    position: absolute;
+    pointer-events: none;
+    filter: blur(125px);
+    will-change: filter;
+    mix-blend-mode: normal
+}
+
+._no-sidebar__leftLights__RqgLF:after {
+    width: 40%;
+    height: 422px;
+    left: 0;
+    top: calc(50% - 422px / 2 + 298px);
+    opacity: .5;
+    background: linear-gradient(180deg,rgba(29,92,162,.2),rgba(42,138,246,.4))
+}
+
+._no-sidebar__rightLights__N4Lns:before {
+    z-index: 200;
+    width: 25%;
+    height: 900px;
+    right: -12.5%;
+    top: calc(50% - 900px / 2 + 151px);
+    background-image: linear-gradient(180deg,rgba(236,151,207,.4),#e92a67);
+    transform: rotate(15deg);
+    border-bottom-left-radius: 25% 25%;
+    border-bottom-right-radius: 25% 25%;
+    border-top-left-radius: 100% 100%;
+    border-top-right-radius: 100% 100%;
+    opacity: .2;
+    overflow: hidden
+}
+
+._no-sidebar__rightLights__N4Lns:after,._no-sidebar__rightLights__N4Lns:before {
+    content: "";
+    position: absolute;
+    pointer-events: none;
+    filter: blur(125px);
+    will-change: filter;
+    mix-blend-mode: normal
+}
+
+._no-sidebar__rightLights__N4Lns:after {
+    width: 40%;
+    height: 422px;
+    right: 0;
+    top: calc(50% - 422px / 2 + 298px);
+    opacity: .25;
+    background: linear-gradient(180deg,rgba(236,151,207,.4),#e92a67);
+    transform: matrix(-1,0,0,1,0,0)
+}
+
+._no-sidebar__counter-border__bBTOZ {
+    --border-radius: 12px;
+    --border-size: 1px;
+    --padding: 1px;
+    --border-bg: conic-gradient(from 180deg at 50% 50%,#e92a67 0deg,#a853ba 112.5deg,#2a8af6 228.75deg,rgba(42,138,246,0) 360deg);
+    position: relative;
+    overflow: hidden;
+    font-size: 2rem;
+    padding: calc(var(--padding) + var(--border-size));
+    border-radius: var(--border-radius);
+    display: inline-block;
+    z-index: 0;
+    backface-visibility: hidden;
+    perspective: 1000;
+    transform: translateZ(0)
+}
+
+._no-sidebar__counter-border__bBTOZ:hover {
+    cursor: pointer
+}
+
+._no-sidebar__counter-border__bBTOZ i {
+    content: "";
+    position: absolute;
+    top: var(--border-size);
+    right: var(--border-size);
+    bottom: var(--border-size);
+    left: var(--border-size);
+    padding: var(--border-size);
+    -webkit-mask: linear-gradient(#fff 0 0) content-box,linear-gradient(#fff 0 0);
+    mask: linear-gradient(#fff 0 0) content-box,linear-gradient(#fff 0 0);
+    -webkit-mask-composite: xor;
+    mask-composite: exclude;
+    z-index: -1;
+    border-radius: calc(var(--border-radius) + var(--border-size))
+}
+
+._no-sidebar__counter-border__bBTOZ i:before {
+    content: "";
+    display: block;
+    background: var(--border-bg);
+    box-shadow: 0 0 40px 20px --var(--border-bg);
+    width: calc(100% * 1.41421356237);
+    padding-bottom: calc(100% * 1.41421356237);
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    transform: translate(-50%,-50%);
+    border-radius: 100%;
+    z-index: -2;
+    animation: _no-sidebar__spin__P8L3O 5s linear infinite
+}
+
+@media (prefers-reduced-motion) {
+    ._no-sidebar__counter-border__bBTOZ i:before {
+        animation: none
+    }
+}
+
+@keyframes _no-sidebar__spin__P8L3O {
+    0% {
+        transform: translate(-50%,-50%) rotate(1turn)
+    }
+
+    to {
+        transform: translate(-50%,-50%) rotate(0)
+    }
+}
+
+._no-sidebar__leftBottomLights__0vRxb {
+    left: calc(50% - 387px / 2 - 80px);
+    background: linear-gradient(180deg,#58a5ff,#a67af4)
+}
+
+._no-sidebar__leftBottomLights__0vRxb,._no-sidebar__rightBottomLights__g2b8M {
+    position: absolute;
+    width: 387px;
+    height: 404px;
+    bottom: -32px;
+    mix-blend-mode: normal;
+    opacity: .15;
+    filter: blur(50px);
+    will-change: filter
+}
+
+._no-sidebar__rightBottomLights__g2b8M {
+    left: calc(50% - 387px / 2 + 81px);
+    background: linear-gradient(180deg,#ff3358,#ff4fd8)
+}
+
+* {
+    border-color: hsl(var(--fd-border)/1)
+}
+
+body {
+    background-color: hsl(var(--fd-background)/1);
+    color: hsl(var(--fd-foreground)/1)
+}
+
   </style>
 
-  <div class="lines">
-    <div class="line" style="margin-left: -43%"></div>
-    <div class="line" style="margin-left: -27%"></div>
-    <div class="line" style="margin-left: 5%"></div>
-    <div class="line" style="margin-left: 13%"></div>
-    <div class="line" style="margin-left: 33%"></div>
-  </div>
-  <main class="relative flex min-h-screen w-full flex-col items-center overflow-hidden">
+  <main class="relative flex h-full w-full flex-col items-center overflow-hidden [--gradient-stop-1:0px] [--gradient-stop-2:120px] [--geist-foreground:#000] sm:[--gradient-stop-1:0px] sm:[--gradient-stop-2:120px]">
+    <div class="pointer-events-none absolute left-0 top-0 h-full w-full overflow-hidden">
+      <div class="absolute z-[-1] h-full w-full [--gradient-stop-1:60%] [--gradient-stop-2:85%] lg:[--gradient-stop-1:50%] lg:[--gradient-stop-2:90%] [--gradient-color-1=rgba(0,0,0,1)] [--gradient-color-2=rgba(0,0,0,0.8)] [--gradient-color-3=rgba(0,0,0,0)] dark:[--gradient-color-1=rgba(255,255,255,1)] dark:[--gradient-color-2=rgba(255,255,255,0.8)] dark:[--gradient-color-3=rgba(255,255,255,0)]" style="background:linear-gradient(180deg, var(--gradient-color-1) 0%, var(--gradient-color-2) var(--gradient-stop-1), var(--gradient-color-3) var(--gradient-stop-2), 100% transparent)"></div>
+      <span class="_no-sidebar__leftLights__RqgLF opacity-100"></span>
+      <span class="_no-sidebar__rightLights__N4Lns opacity-100"></span>
+      {% block animation %}
+      <div class="![perspective:1000px] sm:![perspective:1000px] md:![perspective:1000px] lg:![perspective:1000px] turbohero-background_container__C38kt">
+        <div class="absolute inset-0 z-[100] [--gradient-stop-1:0px] [--gradient-stop-2:50%]" style="background:linear-gradient(to top, rgba(0,0,0,0) 0px, var(--geist-foreground) 50%)"></div>
+        <div style="transform:rotateX(75deg);position:absolute;top:0;bottom:0;left:0;right:0">
+          <div class="turbohero-background_lines__Ptjks"></div>
+        </div>
+      </div>
+      {% endblock %}
+    </div>
+
     <div class="z-10 flex h-full w-full flex-col items-center justify-center">
       {% block page_title %}
-      <h1 class="mx-6 mt-12 w-[300px] bg-gradient-to-b bg-clip-text pb-4  text-center text-5xl font-extrabold leading-tight text-transparent from-white to-[#AAAAAA] md:!w-full lg:text-5xl">
+      <h1 class="mx-6 mt-12 w-[300px] bg-gradient-to-b bg-clip-text pb-4 text-center text-5xl font-extrabold leading-tight text-transparent from-white to-[#AAAAAA] md:!w-full lg:text-5xl">
         Which One is Faster?
       </h1>
 
@@ -161,9 +354,10 @@
       {% endblock %}
     </div>
 
-    <div class="container mt-5 mb-16">
+    <div class="z-10 container mt-5 mb-16">
       {% block content %}{% endblock %}
     </div>
+
   </main>
   <script src="/static/prism.js"></script>
 

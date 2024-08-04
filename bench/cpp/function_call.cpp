@@ -13,7 +13,7 @@ struct Adder : public Base {
     return a + b;
   }
 
-  __attribute__((never_inline)) int Add(int a, int b) {
+  __attribute__((noinline)) int Add(int a, int b) {
     return a + b;
   }
 

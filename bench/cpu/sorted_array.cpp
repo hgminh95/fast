@@ -28,6 +28,18 @@ static void BM_UnsortedArray(benchmark::State& state) {
   }
 }
 
+static void BM_UnsortedArrayNoBranch(benchmark::State& state) {
+  auto arr = MakeArr();
+
+  for (auto _ : state) {
+    int sum = 0;
+    for (auto i = 0u; i < arr.size(); ++i) {
+      sum += arr[i] * (arr[i] > 128);
+    }
+    benchmark::DoNotOptimize(sum);
+  }
+}
+
 static void BM_UnsortedArrayNoPredict(benchmark::State& state) {
   auto arr = MakeArr();
 
@@ -43,10 +55,9 @@ static void BM_UnsortedArrayNoPredict(benchmark::State& state) {
 
 static void BM_SortedArray(benchmark::State& state) {
   auto arr = MakeArr();
+  std::sort(arr.begin(), arr.end());
 
   for (auto _ : state) {
-    std::sort(arr.begin(), arr.end());
-
     int sum = 0;
     for (auto i = 0u; i < arr.size(); ++i) {
       if (arr[i] > 128)
@@ -58,6 +69,7 @@ static void BM_SortedArray(benchmark::State& state) {
 
 BENCHMARK(BM_UnsortedArray);
 BENCHMARK(BM_UnsortedArrayNoPredict);
+BENCHMARK(BM_UnsortedArrayNoBranch);
 BENCHMARK(BM_SortedArray);
 
 BENCHMARK_MAIN();

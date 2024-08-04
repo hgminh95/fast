@@ -299,14 +299,15 @@ questions:
       std::vector<int> arr(100'000);
       # then fill with random value in [0, 256]
 
-      std::sort(arr, arr + arr.size());
+      # do not benchmark this sort function
+      std::sort(arr.begin(), arr.end())
 
       for (auto i = 0u; i < 100'000; ++i) {
         if (arr[i] >= 128)
           sum += arr[i];
       }
     answer: 2
-    faster_factor: 2.4
+    faster_factor: 9.6
     machine: Apple Macbook Air M2
     code_url: https://github.com/hgminh95/fast/blob/main/bench/cpu/sorted_array.cpp
     explain: |
@@ -426,15 +427,30 @@ questions:
   - title: No Branch
     topic: CPU
     code1: |
-      #include
+      for (auto i = 0u; i < arr.size(); ++i) {
+        if (arr[i] > 128)
+          sum += arr[i];
+      }
     code2: |
-      #include
+      for (auto i = 0u; i < arr.size(); ++i) {
+        sum += arr[i] * (arr[i] > 128);
+      }
     answer: 2
-    faster_factor: 2
+    faster_factor: 9
     machine: Apple Macbook Air M2
     code_url: https://github.com/hgminh95/fast/blob/main/bench/cpu/sorted_array.cpp
     explain: |
-      TODO
+      Eventhough there are a lot more instructions in the 2nd example, eliminating
+      branch make it faster due to higher of parallelism achieved on the CPU.
+
+      Part of a reason that compiler does not optimize the first example is because
+      it is not obvious the branchless edition is faster. As you see in `Sorted Array`,
+      branch one, with a clean pattern, will outperform the branchless one, due to extra
+      computation it needs.
+
+      References:
+
+      - [Branchless Programming - Algorithmica](https://en.algorithmica.org/hpc/pipelining/branchless/)
   - title: Register Spill
     topic: CPU
     code1: |
@@ -460,7 +476,18 @@ questions:
     machine: Apple Macbook Air M2
     code_url: https://github.com/hgminh95/fast/blob/main/bench/cpu/register.cpp
     explain: |
-      TODO
+      There are limited amount of registers in CPU. So if the calculation is large amount
+      (in the sense that you need to have a lot intermediate values stored, some will have
+      to go to CPU cache.
+
+      In these 2 examples, the inner loops will be unrolled, as N is small enough. And with
+      larger N, the amount of intermediate values for these calculation grow, leading to
+      downgrade performance.
+
+      References:
+      
+      - [Register Allocation - Wiki](https://en.wikipedia.org/wiki/Register_allocation)
+      - [Register Renaming - Wiki](https://en.wikipedia.org/wiki/Register_renaming)
   - title: PTWRITE
     topic: CPU
     code1: |
