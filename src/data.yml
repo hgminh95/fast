@@ -11,17 +11,57 @@ questions:
   - title: Memory vs Compute
     topic: Memory
     code1: |
-      #include cpp
-      int main() {
+      struct Foo {
+        int values[30];
+        int cached_bar{0};
+
+        int bar() {
+          if (cached_bar == 0) {
+            for (int i = 0; i < 30; ++i) {
+              cached_bar += values[i] * i;
+            }
+          }
+
+          return cached_bar;
+        }
+      };
+
+      std::vector<Foo> arr(1'000'000);
+
+      for (auto &foo : arr) {
+        Use(foo.bar());
       }
     code2: |
-      #include cpp
-      int main() {
+      struct Foo {
+        int values[30];
+
+        int bar() {
+          int res{0};
+          for (int i = 0; i < 30; ++i) {
+            res += values[i] * i;
+          }
+          return res;
+        }
+      };
+
+      std::vector<Foo> arr(1'000'000);
+
+      for (auto &foo : arr) {
+        Use(foo.bar());
       }
-    answer: 1
-    faster_factor: 2
+    answer: 2
+    faster_factor: 3
+    code_url: https://github.com/hgminh95/fast/blob/main/bench/memory/vs_memory.cpp
+    machine: Apple Macbook Air M2
     explain: |
-      TODO
+      TODO: say that memory is more common to be the issue
+
+      In this example, the actual factor that cause majority of slow down is due to the
+      write instruction. TODO go to next example.
+
+      References:
+
+      - TODO: find something
   - title: TLB Miss
     topic: Memory
     code1: |
@@ -34,6 +74,7 @@ questions:
       }
     answer: 1
     faster_factor: 2
+    machine: Apple Macbook Air M2
     explain: |
       References:
 
@@ -41,51 +82,128 @@ questions:
   - title: Zero Initialized Array
     topic: Memory
     code1: |
-      #include cpp
-      int main() {
+      std::vector<int> arr;
+      arr.resize(100'000'000);
+      std::fill(arr.begin(), arr.end(), 0);
+
+      # Only measure this part
+      for (auto i = 0u; i < arr.size(); ++i) {
+        arr[i] = i;
       }
     code2: |
-      #include cpp
-      int main() {
+      std::vector<int> arr;
+      arr.resize(100'000'000);
+
+      # Only measure this part
+      for (auto i = 0u; i < arr.size(); ++i) {
+        arr[i] = i;
       }
     answer: 1
-    faster_factor: 2
+    faster_factor: 1.15
+    code_url: https://github.com/hgminh95/fast/blob/main/bench/memory/page.cpp
+    machine: Apple Macbook Air M2
     explain: |
+      First time you access a page, it will trigger a minor page fault, that could be
+      a bit slower. Zero-initialize the memory region will trigger the minor page
+      fault, to make subsequent access faster.
+
+      Beside `std::fill`, you can use `bzero` or `explicit_bzero`.
+
       References:
 
       - [Minor Page Fault](https://en.wikipedia.org/wiki/Page_fault#Minor)
   - title: Cache vs Memory
     topic: Memory
     code1: |
-      #include cpp
-      int main() {
+      constexpr int STRIDE = 1;
+
+      for (auto i = 0u; i < arr.size(); ++i) {
+        arr[i] = (i + STRIDE) % arr.size();
+      }
+
+      # Measure below part only
+      int sum{0};
+      int p{0};
+      for (auto i = 0u; i < arr.size(); ++i) {
+        sum += arr[p];
+        p = arr[p];
       }
     code2: |
-      #include cpp
-      int main() {
+      constexpr int STRIDE = 4096;
+
+      for (auto i = 0u; i < arr.size(); ++i) {
+        arr[i] = (i + STRIDE) % arr.size();
+      }
+
+      # Measure below part only
+      int sum{0};
+      int p{0};
+      for (auto i = 0u; i < arr.size(); ++i) {
+        sum += arr[p];
+        p = arr[p];
       }
     answer: 1
-    faster_factor: 2
+    faster_factor: 14.7
+    code_url: https://github.com/hgminh95/fast/blob/main/bench/memory/cache.cpp
+    machine: Apple Macbook Air M2
     explain: |
-      References:
+      There are actually a lot of stuff happening here, but the main gist is most of data
+      access in the first code is done in cache, while most in 2nd thread have to go to
+      memory (cache miss).
 
-      - [Minor Page Fault](https://en.wikipedia.org/wiki/Page_fault#Minor)
+      You can use `perf` to see cache miss counter.
+
+      - TODO: perf example here
+
+      References:
+      
+      - [Measuring Cache Latencies - StackOverflow](https://stackoverflow.com/questions/21369381/measuring-cache-latencies)
   - title: Prefetch
     topic: Memory
     code1: |
-      #include cpp
-      int main() {
+      constexpr int STRIDE = 4096;
+
+      for (auto i = 0u; i < arr.size(); ++i) {
+        arr[i] = (i + STRIDE) % arr.size();
+      }
+
+      # Measure below part only
+      int sum{0};
+      int p{0};
+      for (auto i = 0u; i < arr.size(); ++i) {
+        __builtin_prefetch(&arr[(p + 1 * STRIDE) % arr.size()], 0, 0);
+        __builtin_prefetch(&arr[(p + 2 * STRIDE) % arr.size()], 0, 0);
+
+        sum += arr[p];
+        p = arr[p];
       }
     code2: |
-      #include cpp
-      int main() {
+      constexpr int STRIDE = 4096;
+
+      for (auto i = 0u; i < arr.size(); ++i) {
+        arr[i] = (i + STRIDE) % arr.size();
+      }
+
+      # Measure below part only
+      int sum{0};
+      int p{0};
+      for (auto i = 0u; i < arr.size(); ++i) {
+        sum += arr[p];
+        p = arr[p];
       }
     answer: 1
-    faster_factor: 2
+    faster_factor: 1.25
     explain: |
+      If you know the memory address that you are going to access, or are likely be
+      accessed, you can instruct CPU to prefetch them. That would help to reduce the
+      wait if memory access is needed.
+
+      Note that CPU also has a prefetcher, so don't try to do its work, only do this
+      if you think the prefetcher cannot predict the next address.
+
       References:
 
-      - [Minor Page Fault](https://en.wikipedia.org/wiki/Page_fault#Minor)
+      - [Cache Prefetching](https://en.wikipedia.org/wiki/Cache_prefetching)
   - title: False Sharing
     topic: Memory
     code1: |
@@ -125,7 +243,7 @@ questions:
       Foo struct only has 3 integers, which is smaller than 1 cache line (64 bytes). Therefore, multiple instances of Foo will
       fit into a single cache line, causing the possibility for 2 cores to read/write at the same cache line.
 
-      Adding alignment for Foo struct so that 1 cache line only has 1 Foo instance (at the cost of more memory) reduce this,
+      Adding alignment for Foo struct so that 1 cache line only has 1 Foo instance (at the cost of more 
       and make the program run faster. Alternatively, you can divide the work between 2 threads differently (e.g. 0-size/2 to
       1 thread, and the rest to another thread).
 
@@ -451,6 +569,27 @@ questions:
       References:
 
       - [Branchless Programming - Algorithmica](https://en.algorithmica.org/hpc/pipelining/branchless/)
+  - title: No Branch 2
+    topic: CPU
+    code1: |
+      for (auto i = 0u; i < arr.size(); ++i) {
+        if (arr[i] > 128)
+          sum += arr[i];
+      }
+    code2: |
+      int sum[2] = {0, 0};
+      for (auto i = 0u; i < arr.size(); ++i) {
+        sum[arr[i] > 128] += arr[i];
+      }
+      // The answer is in sum[true]
+    answer: 2
+    faster_factor: 1.83
+    machine: Apple Macbook Air M2
+    code_url: https://github.com/hgminh95/fast/blob/main/bench/cpu/sorted_array.cpp
+    explain: |
+      Similar to [No Branch](/q/no_branch.html). This is a difference approach, which
+      is more general. Instead of having branch, you store the compute result in both
+      branch, and discard the incorrect one at the end.
   - title: Register Spill
     topic: CPU
     code1: |
@@ -621,19 +760,34 @@ questions:
     explain: |
       TODO
 
-  - title: Smol
+  - title: Small
     topic: C++
     code1: |
-      struct Foo {
+      for (int j = 0; j < 23; ++j) {
+        std::string s;
+        for (auto i = 0u; i < 22; ++i)
+          s += 'a';
+      }
     code2: |
-      struct Foo {
-    answer: 2
-    faster_factor: "?"
+      for (int j = 0; j < 22; ++j) {
+        std::string s;
+        for (auto i = 0u; i < 23; ++i)
+          s += 'a';
+      }
+    answer: 1
+    faster_factor: 2
     machine: Apple Macbook Air M2
-    code_url: https://github.com/hgminh95/fast/blob/main/bench/cpu/static_variable.cpp
+    code_url: https://github.com/hgminh95/fast/blob/main/bench/cpp/string.cpp
     explain: |
-      TODO
+      Small String Optimization (SSO) is a way to avoid heap allocation by reusing the
+      space for metadata (e.g. pointer, capacity, size) in case the length of the
+      string is small.
 
+      For Clang, the small string size is capped at 22 bytes (at the time of writing)
+
+      References:
+
+      - [An informal comparison of the three major implementations of std::string](https://devblogs.microsoft.com/oldnewthing/20240510-00/?p=109742)
   - title: Chaining Function
     topic: C++
     code1: |
@@ -673,16 +827,16 @@ questions:
     explain: |
       TODO
 
-  - title: Math Functions
+  - title: sqrt
     topic: C++
     code1: |
-      struct Foo {
+      std::sqrt(3);
     code2: |
-      struct Foo {
+      std::sqrt(4);
     answer: 2
     faster_factor: "?"
     machine: Apple Macbook Air M2
-    code_url: https://github.com/hgminh95/fast/blob/main/bench/cpu/static_variable.cpp
+    code_url: https://github.com/hgminh95/fast/blob/main/bench/cpp/math.cpp
     explain: |
       TODO
 

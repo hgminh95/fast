@@ -2,5 +2,6 @@ load("//common:bazel.bzl", "bench")
 
 bench(name = "function_call")
 bench(name = "static_variable")
+bench(name = "string")
 bench(name = "signed")
-bench(name = "stdmath")
+bench(name = "std_math")
