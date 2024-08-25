@@ -10,10 +10,15 @@
 {% endblock %}
 
 {% block content %}
-<p class="font-bold mt-5 mb-2">Is the website usable?</p>
-<p>NO</p>
-<p class="font-bold mt-5 mb-2">Why this website?</p>
-<p>Be cotttttttttttt</p>
-<p class="font-bold mt-5 mb-2">How accurate are the benchmark results?</p>
-<p>Not that accurate</p>
+<h2 class="font-bold text-xl mt-5 mb-2">Is the website usable?</h2>
+<p>Not yet, it is still under heavy development</p>
+<h2 class="font-bold text-xl mt-5 mb-2">Why this website?</h2>
+<p>There a lot of materials online on performance optimization. However, they are pretty much scatter all over place, and since it deals with a lot of details, the presentation could be a bit boring. This website hopefully provides a good and fun starting points for beginner.</p>
+<h2 class="font-bold text-xl mt-5 mb-2">How accurate are the benchmark results?</h2>
+<p class="mb-3">I tried to be accurate, and all the codes can be found in Github so you can check and validate the results yourself. However, even if the microbenchmark is correct, reading conclusion from that needs to be careful:</p>
+<ul class="list-disc ml-5 mb-3">
+  <li>Microbenchmark measure only a small code snippet. The actual performance gain/loss could be</li>
+  <li>Differences in hardware, compiler, OS, etc could result in wildly different benchmarking result.</li>
+</ul>
+<p class="mb-3">The example code is not meant to provide an exact judgement of how code should be written. Instead, it only serve as example on certain concepts</p>
 {% endblock %}

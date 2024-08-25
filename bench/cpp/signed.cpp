@@ -6,7 +6,7 @@
 
 int CalcSum(int N) {
   int sum{0};
-  for (int i = 0; i < N; ++i) {
+  for (int i = 100; i < N; ++i) {
     sum += i * i;
   }
 
@@ -15,7 +15,7 @@ int CalcSum(int N) {
 
 unsigned CalcSumUnsigned(unsigned N) {
   unsigned sum{0};
-  for (unsigned i = 0; i < N; ++i) {
+  for (unsigned i = 100; i < N; ++i) {
     sum += i * i;
   }
 
@@ -24,21 +24,17 @@ unsigned CalcSumUnsigned(unsigned N) {
 
 static void BM_Signed(benchmark::State& state) {
   for (auto _ : state) {
-    for (int i = 0; i < 1'000'000; ++i) {
-      benchmark::DoNotOptimize(CalcSum(i));
-    }
+    benchmark::DoNotOptimize(CalcSum(state.range(0)));
   }
 }
 
 static void BM_Unsigned(benchmark::State& state) {
   for (auto _ : state) {
-    for (unsigned i = 0; i < 1'000'000; ++i) {
-      benchmark::DoNotOptimize(CalcSumUnsigned(i));
-    }
+    benchmark::DoNotOptimize(CalcSumUnsigned(state.range(0)));
   }
 }
 
-BENCHMARK(BM_Signed);
-BENCHMARK(BM_Unsigned);
+BENCHMARK(BM_Signed)->Range(1, 1 << 20);
+BENCHMARK(BM_Unsigned)->Range(1, 1 << 20);
 
 BENCHMARK_MAIN();

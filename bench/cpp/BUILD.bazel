@@ -4,4 +4,11 @@ bench(name = "function_call")
 bench(name = "static_variable")
 bench(name = "string")
 bench(name = "signed")
-bench(name = "std_math")
+bench(name = "function_chain")
+
+cc_binary(
+    name = "std_math",
+    srcs = [
+        "std_math.cpp",
+    ]
+)

@@ -63,6 +63,7 @@ questions:
 
       - TODO: find something
   - title: TLB Miss
+    wip: true
     topic: Memory
     code1: |
       #include cpp
@@ -255,6 +256,7 @@ questions:
         - [docs.kernel.org](https://docs.kernel.org/kernel-hacking/false-sharing.html)
   - title: True Sharing
     topic: Memory
+    wip: true
     code1: |
       constexpr int N = 128;
     code2: |
@@ -269,6 +271,7 @@ questions:
         - [Wiki](https://en.wikipedia.org/wiki/Cache_placement_policies)
   - title: Cache Associativity
     topic: Memory
+    wip: true
     code1: |
       constexpr int N = 64;
 
@@ -295,6 +298,7 @@ questions:
         - [Wiki](https://en.wikipedia.org/wiki/Cache_placement_policies)
   - title: Cache Bank Conflict
     topic: Memory
+    wip: true
     code1: |
       constexpr int N = 1;
 
@@ -319,6 +323,7 @@ questions:
       TODO
   - title: Memory Bank Conflict
     topic: Memory
+    wip: true
     code1: |
       constexpr int N = 1;
     code2: |
@@ -331,6 +336,7 @@ questions:
       TODO
   - title: TLB Shoot Down
     topic: Memory
+    wip: true
     code1: |
       for (int i = 0; i < 10'000'000; ++i) {
         sum += a[i % 1'000'000];
@@ -356,6 +362,7 @@ questions:
       TODO
   - title: Paused
     topic: Memory
+    wip: true
     code1: |
       a
     code2: |
@@ -367,6 +374,7 @@ questions:
     explain: |
       TODO
   - title: Misalign
+    wip: true
     topic: Memory
     code1: |
       a
@@ -379,6 +387,7 @@ questions:
     explain: |
       TODO
   - title: Recharge
+    wip: true
     topic: Memory
     code1: |
       a
@@ -391,6 +400,7 @@ questions:
     explain: |
       TODO
   - title: Mooore Write
+    wip: true
     topic: Memory
     code1: |
       a
@@ -399,7 +409,20 @@ questions:
     answer: 1
     faster_factor: 2
     machine: Apple Macbook Air M2
-    code_url: https://github.com/hgminh95/fast/blob/main/bench/memory/tlb_shootdown.cpp
+    code_url: https://github.com/hgminh95/fast/blob/main/bench/memory/write.cpp
+    explain: |
+      TODO
+  - title: Non Temporal Write
+    wip: true
+    topic: Memory
+    code1: |
+      a
+    code2: |
+      b
+    answer: 1
+    faster_factor: 2
+    machine: Apple Macbook Air M2
+    code_url: https://github.com/hgminh95/fast/blob/main/bench/memory/write.cpp
     explain: |
       TODO
 
@@ -532,6 +555,7 @@ questions:
       - [Superscalar Processor - Wiki](https://en.wikipedia.org/wiki/Superscalar_processor)
   - title: False Dependency
     topic: CPU
+    wip: true
     code1: |
       #include
     code2: |
@@ -627,20 +651,9 @@ questions:
       
       - [Register Allocation - Wiki](https://en.wikipedia.org/wiki/Register_allocation)
       - [Register Renaming - Wiki](https://en.wikipedia.org/wiki/Register_renaming)
-  - title: PTWRITE
-    topic: CPU
-    code1: |
-      #include
-    code2: |
-      #include
-    answer: 2
-    faster_factor: 2
-    machine: Apple Macbook Air M2
-    code_url: https://github.com/hgminh95/fast/blob/main/bench/cpu/sorted_array.cpp
-    explain: |
-      TODO
   - title: Pointer Chasing
     topic: CPU
+    wip: true
     code1: |
       #include
     code2: |
@@ -653,6 +666,7 @@ questions:
       TODO
   - title: Store-To-Loading Forwarding
     topic: CPU
+    wip: true
     code1: |
       #include
     code2: |
@@ -665,6 +679,7 @@ questions:
       TODO
   - title: Async
     topic: CPU
+    wip: true
     code1: |
       #include
     code2: |
@@ -680,6 +695,7 @@ questions:
 
   - title: Inline vs Function Call
     topic: C++
+    wip: true
     code1: |
       __attribute__(always_inline) int foo(int x, int y) {
         return x + y;
@@ -699,6 +715,7 @@ questions:
 
   - title: Function Call vs Virtual Function Call
     topic: C++
+    wip: true
     code1: |
       #include
     code2: |
@@ -736,6 +753,7 @@ questions:
 
   - title: Signed vs Unsigned
     topic: C++
+    wip: true
     code1: |
       struct Foo {
     code2: |
@@ -749,6 +767,7 @@ questions:
 
   - title: Shared Pointer
     topic: C++
+    wip: true
     code1: |
       struct Foo {
     code2: |
@@ -790,6 +809,7 @@ questions:
       - [An informal comparison of the three major implementations of std::string](https://devblogs.microsoft.com/oldnewthing/20240510-00/?p=109742)
   - title: Chaining Function
     topic: C++
+    wip: true
     code1: |
       struct Foo {
     code2: |
@@ -803,6 +823,7 @@ questions:
 
   - title: ABI
     topic: C++
+    wip: true
     code1: |
       struct Foo {
     code2: |
@@ -816,6 +837,7 @@ questions:
 
   - title: Batch Processing
     topic: C++
+    wip: true
     code1: |
       struct Foo {
     code2: |
@@ -829,6 +851,7 @@ questions:
 
   - title: sqrt
     topic: C++
+    wip: true
     code1: |
       std::sqrt(3);
     code2: |
@@ -842,6 +865,7 @@ questions:
 
   - title: Loop Reordering
     topic: C++
+    wip: true
     code1: |
       struct Foo {
     code2: |
@@ -853,23 +877,9 @@ questions:
     explain: |
       TODO
 
-  - title: Simd1
-    topic: SIMD
-    code1: |
-      #include cpp
-      int main() {
-      }
-    code2: |
-      #include cpp
-      int main() {
-      }
-    answer: 1
-    faster_factor: 2
-    explain: |
-      TODO
-
   - title: Moving Data
     topic: GPU
+    wip: true
     code1: |
       #include cpp
       int main() {
@@ -884,6 +894,7 @@ questions:
       TODO
   - title: Coalesced Access
     topic: GPU
+    wip: true
     code1: |
       #include cpp
       int main() {
@@ -898,6 +909,7 @@ questions:
       TODO
   - title: Misaligned Access
     topic: GPU
+    wip: true
     code1: |
       #include cpp
       int main() {
@@ -912,6 +924,7 @@ questions:
       TODO
   - title: The Swizzle Operator
     topic: GPU
+    wip: true
     code1: |
       #include cpp
       int main() {
@@ -926,6 +939,7 @@ questions:
       TODO
   - title: Kernel Fusion
     topic: GPU
+    wip: true
     code1: |
       #include cpp
       int main() {
@@ -940,6 +954,7 @@ questions:
       TODO
   - title: Kernel Fission
     topic: GPU
+    wip: true
     code1: |
       #include cpp
       int main() {
@@ -955,6 +970,7 @@ questions:
 
   - title: Pipelining
     topic: RTL
+    wip: true
     code1: |
       #include cpp
       int main() {
@@ -969,6 +985,7 @@ questions:
       TODO
   - title: Removing Pipeline Register
     topic: RTL
+    wip: true
     code1: |
       #include cpp
       int main() {
@@ -983,6 +1000,7 @@ questions:
       TODO
   - title: Register Layers
     topic: RTL
+    wip: true
     code1: |
       #include cpp
       int main() {
@@ -997,6 +1015,7 @@ questions:
       TODO
   - title: Register Balancing
     topic: RTL
+    wip: true
     code1: |
       #include cpp
       int main() {
@@ -1011,6 +1030,7 @@ questions:
       TODO
   - title: Control-based Logic Reuse
     topic: RTL
+    wip: true
     code1: |
       #include cpp
       int main() {
@@ -1025,6 +1045,7 @@ questions:
       TODO
   - title: Priority Encoders
     topic: RTL
+    wip: true
     code1: |
       #include cpp
       int main() {
@@ -1036,4 +1057,3 @@ questions:
     answer: 1
     faster_factor: 2
     explain: |
-      TODO

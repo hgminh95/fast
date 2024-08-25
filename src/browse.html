@@ -17,6 +17,9 @@
     <tr class="border-b hover:bg-gray-700">
       <td class="text-left py-2 px-5">
         <a href="/q/{{ q.url_id }}.html">{{ q.title }}</a>
+        {% if q.wip %}
+        - WIP
+        {% endif %}
       </td>
       <td class="text-right py-2 px-5">
         <span id="{{ q.url_id }}.solved" style="display: none" class="text-green-500 font-bold">SOLVED</span>

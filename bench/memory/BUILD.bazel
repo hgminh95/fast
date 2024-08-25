@@ -2,5 +2,6 @@ load("//common:bazel.bzl", "bench")
 
 bench(name = "vs_compute")
 bench(name = "page")
+bench(name = "write")
 bench(name = "false_sharing")
 bench(name = "cache")
