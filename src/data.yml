@@ -269,6 +269,44 @@ questions:
       References:
 
         - [Wiki](https://en.wikipedia.org/wiki/Cache_placement_policies)
+  - title: Mutex
+    topic: Memory
+    wip: true
+    code1: |
+      int sum = 0;
+      std::vector<std::threads> threads;
+
+      for (int i = 0; i < 5; ++i) {
+        threads.push_back([&sum, &mutex, &arr]() {
+          int partial_sum = 0;
+          for (int i = 0; i < n; ++i) {
+            partial_sum += i;
+          }
+
+          mutex.lock();
+          sum += partial_sum;
+          mutex.unlock();
+        });
+      }
+    code2: |
+      std::atomic<int> sum = 0;
+      std::vector<std::threads> threads;
+
+      for (int i = 0; i < 5; ++i) {
+        threads.push_back([&sum, &mutex, &arr]() {
+          for (int i = 0; i < n; ++i) {
+            sum += i;
+          }
+        });
+      }
+    answer: 2
+    faster_factor: 3.4
+    machine: Apple Macbook Air M2
+    code_url: https://github.com/hgminh95/fast/blob/main/bench/memory/cache.cpp
+    explain: |
+      References:
+
+        - [Wiki](https://en.wikipedia.org/wiki/Cache_placement_policies)
   - title: Cache Associativity
     topic: Memory
     wip: true
@@ -614,6 +652,26 @@ questions:
       Similar to [No Branch](/q/no_branch.html). This is a difference approach, which
       is more general. Instead of having branch, you store the compute result in both
       branch, and discard the incorrect one at the end.
+  - title: Well Predicted
+    topic: CPU
+    code1: |
+      // The array is sorted beforehand
+      for (auto i = 0u; i < arr.size(); ++i) {
+        if (arr[i] > 128)
+          sum += arr[i];
+      }
+    code2: |
+      int sum[2] = {0, 0};
+      for (auto i = 0u; i < arr.size(); ++i) {
+        sum[arr[i] > 128] += arr[i];
+      }
+      // The answer is in sum[true]
+    answer: 1
+    faster_factor: 5.35
+    machine: Apple Macbook Air M2
+    code_url: https://github.com/hgminh95/fast/blob/main/bench/cpu/sorted_array.cpp
+    explain: |
+      TODO
   - title: Register Spill
     topic: CPU
     code1: |
