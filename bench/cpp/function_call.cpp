@@ -5,7 +5,7 @@
 #include <chrono>
 
 struct Base {
-  virtual int AddVirt(int a, int b) = 0;
+  __attribute__((noinline)) virtual int AddVirt(int a, int b) noexcept = 0;
 };
 
 struct Adder : public Base {
@@ -13,14 +13,20 @@ struct Adder : public Base {
     return a + b;
   }
 
-  __attribute__((noinline)) int Add(int a, int b) {
+  __attribute__((noinline)) int Add(int a, int b) noexcept {
+    asm ("endbr64");
     return a + b;
   }
 
-  int AddVirt(int a, int b) override {
+  __attribute__((noinline)) int AddVirt(int a, int b) noexcept override {
     return a + b;
   }
 };
+
+__attribute__((noinline)) int Add(int a, int b) noexcept {
+  asm ("endbr64");
+  return a + b;
+}
 
 std::vector<int> MakeArr() {
   srand(time(NULL));
@@ -51,9 +57,9 @@ static void BM_Function(benchmark::State& state) {
 
   for (auto _ : state) {
     int sum{0};
-    Adder adder;
+    // Adder adder;
     for (auto i = 0u; i < arr.size(); ++i) {
-      sum = adder.Add(sum, arr[i]);
+      sum = Add(sum, arr[i]);
     }
     benchmark::DoNotOptimize(sum);
   }

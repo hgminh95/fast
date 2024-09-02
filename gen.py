@@ -22,7 +22,7 @@ def _render_to_file(filepath, template, ctx):
         f.write(template.render(**ctx))
 
 
-def _load_data():
+def _load_data(no_wip):
     fp = os.path.join(config.SRC_ROOT, config.DATA_FILE)
 
     with open(fp) as stream:
@@ -30,6 +30,9 @@ def _load_data():
 
     for m in data["machines"]:
         m["url_id"] = m["name"].strip().replace(" ", "_").lower()
+
+    if no_wip:
+        data["questions"] = list(filter(lambda x: "wip" not in x or x["wip"] == False, data["questions"]))
 
     for q in data["questions"]:
         q["url_id"] = q["title"].strip().replace(" ", "_").lower()
@@ -43,12 +46,12 @@ def _load_data():
     return data
 
 
-def _compile_once():
+def _compile_once(no_wip):
     env = jinja2.Environment(
         loader=jinja2.FileSystemLoader(config.SRC_ROOT),
         autoescape=jinja2.select_autoescape,
     )
-    ctx = _load_data()
+    ctx = _load_data(no_wip)
 
     os.makedirs(config.BUILD_ROOT, exist_ok=True)
 
@@ -107,8 +110,9 @@ def _compile_once():
 
 @click.command()
 @click.option("--watch", is_flag=True)
-def main(watch):
-    _compile_once()
+@click.option("--no_wip", is_flag=True)
+def main(watch, no_wip):
+    _compile_once(no_wip)
 
     if not watch:
         _logger.info("Run below command to run a test server")
@@ -122,7 +126,7 @@ def main(watch):
 
         class EventHandler(FileSystemEventHandler):
             def on_modified(self, event):
-                _compile_once()
+                _compile_once(no_wip)
 
         event_handler = EventHandler()
         observer.schedule(event_handler, config.SRC_ROOT, recursive=True)

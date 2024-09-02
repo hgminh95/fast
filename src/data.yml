@@ -6,6 +6,13 @@ machines:
       Compiler: Homebrew Clang 17.0.6
       Kernel: Darwin Kernel Version 22.2.0: Fri Nov 11 02:06:26 PST 2022; root:xnu-8792.61.2~4/RELEASE_ARM64_T8112
       ... more to come
+  - name: AMD Ryzen 9
+    specs: |
+      CPU: AMD Ryzen 9 7900X 12-Core Processor
+      RAM: 2x DDR5 16GB
+      Compiler: GCC 13.2.0-23ubuntu4
+      Kernel: Linux 6.8.0-41-generic
+      ... more to come
 
 questions:
   - title: Memory vs Compute
@@ -271,45 +278,51 @@ questions:
         - [Wiki](https://en.wikipedia.org/wiki/Cache_placement_policies)
   - title: Mutex
     topic: Memory
-    wip: true
     code1: |
-      int sum = 0;
-      std::vector<std::threads> threads;
+      std::vector<std::thread> threads;
+      std::atomic<int> sum = 0;
 
-      for (int i = 0; i < 5; ++i) {
-        threads.push_back([&sum, &mutex, &arr]() {
+      for (int i = 0; i < 4; ++i) {
+        threads.emplace_back([&arr, i, &sum]() {
           int partial_sum = 0;
-          for (int i = 0; i < n; ++i) {
-            partial_sum += i;
+          auto start = i * arr.size() / 4;
+          auto end = (i + 1) * arr.size() / 4;
+          for (int i = start; i < end; ++i) {
+            partial_sum += arr[i];
           }
 
-          mutex.lock();
           sum += partial_sum;
-          mutex.unlock();
         });
       }
     code2: |
+      std::vector<std::thread> threads;
       std::atomic<int> sum = 0;
-      std::vector<std::threads> threads;
 
-      for (int i = 0; i < 5; ++i) {
-        threads.push_back([&sum, &mutex, &arr]() {
-          for (int i = 0; i < n; ++i) {
-            sum += i;
+      for (int i = 0; i < 4; ++i) {
+        threads.emplace_back([&arr, i, &sum]() {
+          auto start = i * arr.size() / 4;
+          auto end = (i + 1) * arr.size() / 4;
+          for (int i = start; i < end; ++i) {
+            sum += arr[i];
           }
         });
       }
-    answer: 2
-    faster_factor: 3.4
-    machine: Apple Macbook Air M2
-    code_url: https://github.com/hgminh95/fast/blob/main/bench/memory/cache.cpp
+    answer: 1
+    faster_factor: 145.8
+    machine: AMD Ryzen 9
+    code_url: https://github.com/hgminh95/fast/blob/main/bench/memory/lock.cpp
     explain: |
-      References:
+      Lock-free atomic operation does not mean it is free. Under the hood, works need to be done whenever 2 cores read/write to the same cache line.
 
-        - [Wiki](https://en.wikipedia.org/wiki/Cache_placement_policies)
+      In the 2nd example, the contention is much higher since we read/modify sum on every iteration, while in the first one, it is only done 4 times, 1 in each thread. That's to show atomic, if not used properly could lead to degrade in performance.
+
+      To detect cache line contention, you can use `perf c2c`.
+
+      References:
+      
+      - [perf c2c man page](https://man7.org/linux/man-pages/man1/perf-c2c.1.html)
   - title: Cache Associativity
     topic: Memory
-    wip: true
     code1: |
       constexpr int N = 64;
 
@@ -331,9 +344,15 @@ questions:
     machine: Apple Macbook Air M2
     code_url: https://github.com/hgminh95/fast/blob/main/bench/memory/cache.cpp
     explain: |
+      As cache needs to be fast, it needs to be simple. And one way to do that is that each address can only be fit into certain cache entry.
+
+      That means even if the cache itself is not full, but there are conflicts (e.g. a lot of address have the same last k-bits) there could be degrade in performance.
+
       References:
 
         - [Wiki](https://en.wikipedia.org/wiki/Cache_placement_policies)
+        - [Cache Associativity](https://en.algorithmica.org/hpc/cpu-cache/associativity/)
+        - [Cache Associativity](https://csillustrated.berkeley.edu/PDFs/handouts/cache-3-associativity-handout.pdf)
   - title: Cache Bank Conflict
     topic: Memory
     wip: true
@@ -705,10 +724,41 @@ questions:
       larger N, the amount of intermediate values for these calculation grow, leading to
       downgrade performance.
 
+      Note that this specific example depends heavily on whether the compiler will unroll the 2nd
+      loop, and how many loop will it unroll. GCC 13 seems to handle this better, and does not
+      fully unroll all 8 loops in this case.
+
       References:
       
       - [Register Allocation - Wiki](https://en.wikipedia.org/wiki/Register_allocation)
       - [Register Renaming - Wiki](https://en.wikipedia.org/wiki/Register_renaming)
+  - title: Jump
+    topic: CPU
+    code1: |
+      for (auto i = 0u; i < 100'000; ++i) {
+        asm("nop");
+        asm("nop");
+        asm("nop");
+        ...
+        // 15 times
+      }
+    code2: |
+      for (auto i = 0u; i < 100'000; ++i) {
+        asm("nop");
+        asm("nop");
+        asm("nop");
+        ...
+        // 14 times
+      }
+    answer: 1
+    faster_factor: 1.16
+    machine: AMD Ryzen 9
+    code_url: https://github.com/hgminh95/fast/blob/main/bench/cpu/jump.cpp
+    explain: |
+      32 bytes aligned cmp is significiantly slower. looks like to be on the frontend part.
+      TODO
+
+      References:
   - title: Pointer Chasing
     topic: CPU
     wip: true
@@ -750,10 +800,8 @@ questions:
       TODO
 
 
-
   - title: Inline vs Function Call
     topic: C++
-    wip: true
     code1: |
       __attribute__(always_inline) int foo(int x, int y) {
         return x + y;
@@ -763,13 +811,32 @@ questions:
         return x + y;
       }
     answer: 1
-    faster_factor: "?"
-    machine: Apple Macbook Air M2
+    faster_factor: "4.7"
+    machine: AMD Ryzen 9
     code_url: https://github.com/hgminh95/fast/blob/main/bench/cpp/function_call.cpp
     explain: |
-      Inline function is always faster.
+      [Inlining function](https://en.wikipedia.org/wiki/Inline_expansion) could be faster because it:
 
-      TODO
+      - Eliminate the cost of calling function. The cost will making some changes to some register, pushing thing to stack, and then a jump on the code.
+      - Enable more optimization on the caller since the compiler has more info on how a function works. Depending on the cases, this would be the larger benefit.
+
+      The drawback, however, is larger code size, and that could lead to more icache miss.
+
+      For a function to be inlined in C++, it needs to be defined on the header, or link time optimization is enabled.
+
+      Compiler on average can decide on which function, or where a function should be inlined better than human, especially with profile guided optimization. However, there are cases that you might want to use these attribute manually, e.g. if you know for sure a function is always in a critical path, and it will not lead to code bloat; or if the path that you want to optimize for is not hot (executed less frequently compared to other paths).
+
+      Beside these attributes, there are others inline-related one that could be helpful: flatten
+
+      Note that you might see different results on Clang, due to how these attributes are interpreted.
+
+      References:
+
+      - [GCC Common Function Attribute](https://gcc.gnu.org/onlinedocs/gcc/Common-Function-Attributes.html)
+      - [clang ignoring attribute noinline](https://stackoverflow.com/questions/54481855/clang-ignoring-attribute-noinline)
+      - [GCC Link Time Optimization](https://gcc.gnu.org/wiki/LinkTimeOptimization)
+      - [LLVM Link Time Optimization](https://llvm.org/docs/LinkTimeOptimization.html)
+      - [Profile-Guided Optimization](https://en.wikipedia.org/wiki/Profile-guided_optimization)
 
   - title: Function Call vs Virtual Function Call
     topic: C++
@@ -790,24 +857,30 @@ questions:
     code1: |
       struct Foo {
         int Add(int x) {
-          static Bar a;
+          static int a = rand() % 5;
           return a += x;
         }
       };
     code2: |
       struct Foo {
-        static inline int a{0};
+        static inline int a = rand() % 5;
 
         int Add(int x) {
           return a += x;
         }
       };
     answer: 2
-    faster_factor: "?"
-    machine: Apple Macbook Air M2
+    faster_factor: "1.05"
+    machine: AMD Ryzen 9
     code_url: https://github.com/hgminh95/fast/blob/main/bench/cpu/static_variable.cpp
     explain: |
-      TODO
+      Static member variable will be initialized when the application start. Static local variable, however,
+      will be initialized first time when it is called. That mean having an extra check in runtime to figure
+      out whether the variable is initialized or not.
+
+      References:
+
+      - TODO
 
   - title: Signed vs Unsigned
     topic: C++
@@ -867,17 +940,53 @@ questions:
       - [An informal comparison of the three major implementations of std::string](https://devblogs.microsoft.com/oldnewthing/20240510-00/?p=109742)
   - title: Chaining Function
     topic: C++
-    wip: true
     code1: |
-      struct Foo {
+      struct Context {
+        // complex class
+      };
+      
+      void Step1(Context &ctx) {
+        // complex function
+      }
+      
+      void Step2(Context &ctx) {
+        // complex function
+      }
+
+      for (auto &context : contexts) {
+        Step1(context);
+        Step2(context);
+        Step1(context);
+        Step2(context);
+      }
     code2: |
-      struct Foo {
+      for (auto &context : contexts) {
+        Step1(context);
+      }
+      for (auto &context : contexts) {
+        Step2(context);
+      }
+      for (auto &context : contexts) {
+        Step1(context);
+      }
+      for (auto &context : contexts) {
+        Step2(context);
+      }
     answer: 2
-    faster_factor: "?"
-    machine: Apple Macbook Air M2
-    code_url: https://github.com/hgminh95/fast/blob/main/bench/cpu/static_variable.cpp
+    faster_factor: "1.39"
+    machine: AMD Ryzen 9
+    code_url: https://github.com/hgminh95/fast/blob/main/bench/cpu/function_chain.cpp
     explain: |
-      TODO
+      TODO: Code is too long
+
+      There are various factors that affect the performance of this:
+
+      - icache miss: the 2nd variant will have less icache missed, since we execute a smaller code at a time
+      - dcache miss: depending on the Context struct, and these Step1, Step2 function; doing them all in 1 pass could save on the time to load the context member variable or related variables in Step1, Step2 functions
+      - optimization across functions: in the first variant, multiple functions are called at one. There could be optimization that make the speed of 4 functions faster than running each 1 individually.
+      - vectorization: in the 2nd variant, it is easier to vectorize each functions
+
+      References:
 
   - title: ABI
     topic: C++
@@ -907,19 +1016,22 @@ questions:
     explain: |
       TODO
 
-  - title: sqrt
+  - title: pow
     topic: C++
     wip: true
     code1: |
-      std::sqrt(3);
+      std::pow(3);
     code2: |
-      std::sqrt(4);
+      std::pow(4);
     answer: 2
     faster_factor: "?"
     machine: Apple Macbook Air M2
     code_url: https://github.com/hgminh95/fast/blob/main/bench/cpp/math.cpp
     explain: |
-      TODO
+
+      References:
+
+      - [slowpow](https://entropymine.com/imageworsener/slowpow/)
 
   - title: Loop Reordering
     topic: C++

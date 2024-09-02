@@ -6,6 +6,8 @@
 #include <atomic>
 #include <chrono>
 
+#include <immintrin.h>
+
 static void BM_Write(benchmark::State& state) {
   auto arr = MakeArr<uint8_t>(1'000'000);
 
@@ -48,23 +50,29 @@ static void BM_WriteMoore(benchmark::State& state) {
 }
 
 static void BM_NormalWrite(benchmark::State& state) {
-  auto arr = MakeArr<uint64_t>(1'000'000);
+  auto arr = MakeArr<int64_t>(1'000'000);
 
   for (auto _ : state) {
-    for (auto i = 0; i < arr.size(); ++i) {
-      arr[i] == i;
-      benchmark::DoNotOptimize(arr[i]);
+    for (auto i = 0u; i < arr.size(); ++i) {
+      arr[i] == rand() % 5;
     }
+  }
+
+  for (auto i = 0u; i < arr.size(); ++i) {
+    benchmark::DoNotOptimize(arr[i]);
   }
 }
 static void BM_NonTemporalWrite(benchmark::State& state) {
-  auto arr = MakeArr<uint64_t>(1'000'000);
+  auto arr = MakeArr<int64_t>(1'000'000);
 
   for (auto _ : state) {
-    for (auto i = 0; i < arr.size(); ++i) {
-      __builtin_nontemporal_store(i, &arr[i]);
-      benchmark::DoNotOptimize(arr[i]);
+    for (auto i = 0u; i < arr.size(); ++i) {
+      _mm_stream_si64(reinterpret_cast<long long int*>(&arr[i]), rand() % 5);
     }
+  }
+
+  for (auto i = 0u; i < arr.size(); ++i) {
+    benchmark::DoNotOptimize(arr[i]);
   }
 }
 

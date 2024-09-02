@@ -5,7 +5,7 @@
 #include <chrono>
 
 struct Adder {
-  static inline int a{0};
+  static inline int a = rand() % 5;
 
   int AddToA1(int x) {
     a += x;
@@ -13,7 +13,7 @@ struct Adder {
   }
 
   int AddToA2(int x) {
-    static int a{0};
+    static int a = rand() % 5;
     a += x;
     return a;
   }
