@@ -5,6 +5,7 @@ bench(name = "static_variable")
 bench(name = "string")
 bench(name = "signed")
 bench(name = "function_chain")
+bench(name = "alias")
 
 cc_binary(
     name = "std_math",
