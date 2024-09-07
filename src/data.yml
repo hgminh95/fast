@@ -772,19 +772,80 @@ questions:
     code_url: https://github.com/hgminh95/fast/blob/main/bench/cpu/sorted_array.cpp
     explain: |
       TODO
-  - title: Store-To-Loading Forwarding
+  - title: Store-To-Load Forwarding
     topic: CPU
-    wip: true
     code1: |
-      #include
+      struct Elem {
+        int32_t part1{0};
+        int32_t part2{0};
+      
+        void Store(int32_t x) {
+          part1 = 0;
+          part2 = x;
+        }
+      
+        int64_t Load() {
+          return *reinterpret_cast<int64_t*>(this);
+        }
+      };
+
+      volatile uint16_t x;
+
+      for (auto &elem : arr) {
+        elem.Store(x);
+        std::atomic_thread_fence(std::memory_order_seq_cst);
+        sum += elem.Load();
+      }
     code2: |
-      #include
+      struct Elem {
+        int32_t part1{0};
+        int32_t part2{0};
+      
+        void Store(int32_t x) {
+          *reinterpret_cast<int64_t*>(this) = x;
+        }
+      
+        int64_t Load() {
+          return *reinterpret_cast<int64_t*>(this);
+        }
+      };
+
+      volatile uint16_t x;
+
+      for (auto &elem : arr) {
+        elem.Store(x);
+        std::atomic_thread_fence(std::memory_order_seq_cst);
+        sum += elem.Load();
+      }
     answer: 2
-    faster_factor: 2
-    machine: Apple Macbook Air M2
-    code_url: https://github.com/hgminh95/fast/blob/main/bench/cpu/sorted_array.cpp
+    faster_factor: 2.4
+    machine: AMD Ryzen 9
+    code_url: https://github.com/hgminh95/fast/blob/main/bench/cpu/store_forwarding.cpp
     explain: |
-      TODO
+      Even L1 cache is slow sometimes. For example, if you write to a memory address and then load it again later, if the data is in store buffer inside CPU, we don't need to wait for them to commit to L1 or load from L1 again. This optimization in CPU is call store-to-load forwarding. There are certain restriction on when it can be performed, as it need to be done very fast, please check references for more details.
+
+      You can use `perf` to measure this.
+
+          $ perf list
+          ls_stlf
+            [Store-to-load-forward (STLF) hits]
+
+          $ 'bazel-bin/cpu/store_forwarding --benchmark_filter=BM_StoreForwarding<Foo1> --benchmark_min_time=100x':
+          410,195,410      L1-dcache-loads                                                       
+          100,300,709      ls_stlf
+
+          $ 'bazel-bin/cpu/store_forwarding --benchmark_filter=BM_StoreForwarding<Foo2> --benchmark_min_time=100x':
+          209,280,067      L1-dcache-loads                                                       
+          200,245,122      ls_stlf
+
+      Note that above benchmark works because:
+
+      - It rely on a fact the compiler cannot optimize the `Store` function to store 64 bytes directly.
+      - We add a memory fence to prevent compiler from reordering the write before read. Removing that, the 2nd code is still faster, but because of different reason.
+
+      References:
+      
+      - [Store forwarding by example - easyperf](https://easyperf.net/blog/2018/03/09/Store-forwarding)
   - title: Async
     topic: CPU
     wip: true
