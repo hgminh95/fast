@@ -1,6 +1,6 @@
 # fast
 
-[whatisfaster.dev](whatisfaster.dev)
+[whichisfaster.dev](https://whichisfaster.dev)
 
 ## Requirements
 
