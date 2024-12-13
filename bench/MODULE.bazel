@@ -8,3 +8,12 @@ module(
 bazel_dep(name = "apple_support", version = "1.8.1")
 
 bazel_dep(name = "google_benchmark", version = "1.8.5")
+
+bazel_dep(name = "rules_cuda", version = "0.2.1")
+
+cuda = use_extension("@rules_cuda//cuda:extensions.bzl", "toolchain")
+cuda.local_toolchain(
+    name = "local_cuda",
+    toolkit_path = "",
+)
+use_repo(cuda, "local_cuda")
