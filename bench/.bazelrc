@@ -1,5 +1,6 @@
 common --show_timestamps
 common --color=yes
+common --enable_bzlmod
 
 build --verbose_failures
 
@@ -15,3 +16,12 @@ build --copt=-g
 build:opt -c opt
 build:opt --copt=-march=native
 build:opt --copt=-mtune=native
+
+
+# On Bazel 7 and above you need to explicitly allow persistence in the sandbox. You can use the following .bazelrc snippet, adjust the paths depending on your cache configuration.
+common --enable_platform_specific_config
+# You can configure `/tmp/zig-cache`, or similar, specifically,
+# if you can ensure that the directory exists before the build.
+build:linux --sandbox_add_mount_pair=/tmp
+build:macos --sandbox_add_mount_pair=/var/tmp
+build:windows --sandbox_add_mount_pair=C:\Temp

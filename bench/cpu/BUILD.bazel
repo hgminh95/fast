@@ -1,4 +1,4 @@
-load("//common:bazel.bzl", "bench")
+load("//common:bazel.bzl", "bench", "zig_bench")
 
 bench(name = "sorted_array")
 bench(name = "modulo")
@@ -7,3 +7,5 @@ bench(name = "dependency")
 bench(name = "register")
 bench(name = "jump")
 bench(name = "store_forwarding")
+
+zig_bench(name = "power_of_two")

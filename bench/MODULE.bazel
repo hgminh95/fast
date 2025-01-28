@@ -17,3 +17,12 @@ cuda.local_toolchain(
     toolkit_path = "",
 )
 use_repo(cuda, "local_cuda")
+
+bazel_dep(name = "rules_zig", version = "0.6.1")
+zig = use_extension(
+    "@rules_zig//zig:extensions.bzl",
+    "zig",
+    dev_dependency = True,
+)
+zig.toolchain(zig_version = "0.13.0")
+use_repo(zig, "zig_toolchains")
