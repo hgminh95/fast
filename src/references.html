@@ -15,9 +15,9 @@
 </p>
 
 <ul class="list-disc ml-5">
-{% for name, url in refs.items() %}
+{% for name in sorted(refs.keys()) %}
   <li>
-    <a class="text-blue-500 hover:text-blue-700 text-underline" href="{{ url }}">{{ name }}</a>
+    <a class="text-blue-500 hover:text-blue-700 text-underline" href="{{ refs[name] }}">{{ name }}</a>
   </li>
 {% endfor %}
 </ul>

@@ -79,6 +79,7 @@ def _compile_once(no_wip):
         autoescape=jinja2.select_autoescape,
     )
     ctx = _load_data(no_wip)
+    ctx["sorted"] = sorted
 
     os.makedirs(config.BUILD_ROOT, exist_ok=True)
 
