@@ -1,4 +1,4 @@
-{%extends "_layout.html" %}
+{% extends "_layout.html" %}
 
 {% block page_title %}
 <h1 class="mx-6 mt-12 w-[300px] bg-gradient-to-b bg-clip-text pb-4 text-center text-5xl font-extrabold leading-tight text-transparent from-white to-[#AAAAAA] w-full">
@@ -10,15 +10,27 @@
 {% endblock %}
 
 {% block content %}
-<h2 class="font-bold text-xl mt-5 mb-2">Is the website usable?</h2>
-<p>Not yet, it is still under heavy development. There are a lot of typos, broken CSS and unfinished sentenc</p>
-<h2 class="font-bold text-xl mt-5 mb-2">Why this website?</h2>
-<p>There a lot of materials online on performance optimization. However, they are pretty much scatter all over place, and since it deals with a lot of details, the presentation could be a bit boring. This website hopefully provides a good and fun starting points for beginner.</p>
-<h2 class="font-bold text-xl mt-5 mb-2">How accurate are the benchmark results?</h2>
-<p class="mb-3">I tried to be accurate, and all the codes can be found in Github so you can check and validate the results yourself. However, even if the microbenchmark is correct, reading conclusion from that needs to be careful:</p>
-<ul class="list-disc ml-5 mb-3">
-  <li>Microbenchmark measure only a small code snippet. The actual performance gain/loss could be</li>
-  <li>Differences in hardware, compiler, OS, etc could result in wildly different benchmarking result.</li>
-</ul>
-<p class="mb-3">The example code is not meant to provide an exact judgement of how code should be written. Instead, it only serve as example on certain concepts</p>
+<div class="space-y-5">
+  <div class="space-y-2">
+    <h2 class="font-bold text-xl" id="why">Why this website?</h2>
+    <p>There a lot of materials online on performance optimization. However, knowing where to start could be still quite troublesome, and as a lot of details are involved, the presentation could be a bit boring. This website hopefully provides a good and fun starting points for beginner.</p>
+    <p>The website serves as an introduction to certain topic regarding performance optimization. It is NOT supposed to be used as a reference on how code should be written.</p>
+  </div>
+
+  <div class="space-y-2" id="accurate">
+    <h2 class="font-bold text-xl">How accurate is microbenchmark?</h2>
+    <p>There might be a few reasons that you don't want to trust the benchmark result at face value, even if the code is "correct" (if you find any mistake, feel free to send a MR).</p>
+    <p>One reason is the benchmark result varies a lot on the compiler/hardware/existing software. You always to run them yourself at the target setup of your application.</p>
+    <p>Interpreting the result is another headche:</p>
+    <ul class="space-y-2 list-disc ml-5">
+      <li>It usually does not take into account the performace when it is mixed up with other code, where resources are shared for the whole app. For example, memory alignment could look good at microbenchmark, but too many aligned memory could lead to increase in cache miss due to cache assosication.</li>
+      <li>At smaller scale, some effect might be magnified compared to in normal situation. For example, instruction address could cause a large gain/loss in performance at microbenchmark. As such, you always want to look at the generated asm, CPU perf counter, etc to understanding the root cause of speed differences.</li>
+    </ul>
+  </div>
+
+  <div class="space-y-2">
+    <h2 class="font-bold text-xl" id="change">Should I change my code like the faster example?</h2>
+    <p>No. You should benchmark the whole codebase in a realistic workloads. Microbenchmark is not always a reliable shortcut.</p>
+  </div>
+</div>
 {% endblock %}
