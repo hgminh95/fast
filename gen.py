@@ -2,6 +2,7 @@ import logging
 import os
 import time
 import shutil
+import re
 
 import jinja2
 import click
@@ -22,11 +23,33 @@ def _render_to_file(filepath, template, ctx):
         f.write(template.render(**ctx))
 
 
+def _find_md_links(md):
+    """
+    Return dict of links in markdown
+    From: https://stackoverflow.com/questions/30734682/extracting-url-and-anchor-text-from-markdown-using-python
+    """
+    INLINE_LINK_RE = re.compile(r'\[([^\]]+)\]\(([^)]+)\)')
+    FOOTNOTE_LINK_TEXT_RE = re.compile(r'\[([^\]]+)\]\[(\d+)\]')
+    FOOTNOTE_LINK_URL_RE = re.compile(r'\[(\d+)\]:\s+(\S+)')
+
+    links = dict(INLINE_LINK_RE.findall(md))
+    footnote_links = dict(FOOTNOTE_LINK_TEXT_RE.findall(md))
+    footnote_urls = dict(FOOTNOTE_LINK_URL_RE.findall(md))
+
+    for key, value in footnote_links.items():
+        footnote_links[key] = footnote_urls[value]
+    links.update(footnote_links)
+
+    return links
+
+
 def _load_data(no_wip):
     fp = os.path.join(config.SRC_ROOT, config.DATA_FILE)
 
     with open(fp) as stream:
         data = yaml.safe_load(stream)
+
+    refs = {}
 
     for m in data["machines"]:
         m["url_id"] = m["name"].strip().replace(" ", "_").lower()
@@ -42,6 +65,10 @@ def _load_data(no_wip):
     num_q = len(data["questions"])
     for i in range(num_q):
         data["questions"][i]["next_url_id"] = data["questions"][(i + 1) % num_q]["url_id"]
+
+        refs = refs | _find_md_links(data["questions"][i]["explain"])
+
+    data["refs"] = refs
 
     return data
 
@@ -70,6 +97,10 @@ def _compile_once(no_wip):
     _logger.info("Generating faq.html file")
     template = env.get_template(config.FAQ_PAGE)
     _render_to_file("faq.html", template, ctx)
+
+    _logger.info("Generating references.html file")
+    template = env.get_template(config.REFERENCES_PAGE)
+    _render_to_file("references.html", template, ctx)
 
     _logger.info("Generating single question .html files")
     template = env.get_template(config.SINGLE_Q_PAGE)

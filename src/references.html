@@ -1,0 +1,24 @@
+{% extends "_layout.html" %}
+
+{% block page_title %}
+<h1 class="mx-6 mt-12 w-[300px] bg-gradient-to-b bg-clip-text pb-4 text-center text-5xl font-extrabold leading-tight text-transparent from-white to-[#AAAAAA] w-full">
+  References
+</h1>
+{% endblock %}
+
+{% block animation %}
+{% endblock %}
+
+{% block content %}
+<p class="mb-5">
+  List of all the references mentioned in all of the website, in random order.
+</p>
+
+<ul class="list-disc ml-5">
+{% for name, url in refs.items() %}
+  <li>
+    <a class="text-blue-500 hover:text-blue-700 text-underline" href="{{ url }}">{{ name }}</a>
+  </li>
+{% endfor %}
+</ul>
+{% endblock %}

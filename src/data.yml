@@ -86,7 +86,7 @@ questions:
     explain: |
       References:
 
-      - [Translation Lookaside Buffer](https://en.wikipedia.org/wiki/Translation_lookaside_buffer)
+      - [Wikipedia - Translation Lookaside Buffer](https://en.wikipedia.org/wiki/Translation_lookaside_buffer)
   - title: Zero Initialized Array
     topic: Memory
     code1: |
@@ -119,7 +119,7 @@ questions:
 
       References:
 
-      - [Minor Page Fault](https://en.wikipedia.org/wiki/Page_fault#Minor)
+      - [Wikipedia - Minor Page Fault](https://en.wikipedia.org/wiki/Page_fault#Minor)
   - title: Cache vs Memory
     topic: Memory
     code1: |
@@ -165,7 +165,7 @@ questions:
 
       References:
       
-      - [Measuring Cache Latencies - StackOverflow](https://stackoverflow.com/questions/21369381/measuring-cache-latencies)
+      - [StackOverflow - Measuring Cache Latencies](https://stackoverflow.com/questions/21369381/measuring-cache-latencies)
   - title: Prefetch
     topic: Memory
     code1: |
@@ -211,7 +211,7 @@ questions:
 
       References:
 
-      - [Cache Prefetching](https://en.wikipedia.org/wiki/Cache_prefetching)
+      - [Wikipedia - Cache Prefetching](https://en.wikipedia.org/wiki/Cache_prefetching)
   - title: False Sharing
     topic: Memory
     code1: |
@@ -259,8 +259,8 @@ questions:
 
       References:
 
-        - [Wiki](https://en.wikipedia.org/wiki/False_sharing)
-        - [docs.kernel.org](https://docs.kernel.org/kernel-hacking/false-sharing.html)
+        - [Wikipedia - False Sharing](https://en.wikipedia.org/wiki/False_sharing)
+        - [docs.kernel.org - False Sharing](https://docs.kernel.org/kernel-hacking/false-sharing.html)
   - title: True Sharing
     topic: Memory
     wip: true
@@ -275,7 +275,7 @@ questions:
     explain: |
       References:
 
-        - [Wiki](https://en.wikipedia.org/wiki/Cache_placement_policies)
+        - [Wikipedia - Cache Replacement Policies](https://en.wikipedia.org/wiki/Cache_placement_policies)
   - title: Mutex
     topic: Memory
     code1: |
@@ -350,9 +350,9 @@ questions:
 
       References:
 
-        - [Wiki](https://en.wikipedia.org/wiki/Cache_placement_policies)
-        - [Cache Associativity](https://en.algorithmica.org/hpc/cpu-cache/associativity/)
-        - [Cache Associativity](https://csillustrated.berkeley.edu/PDFs/handouts/cache-3-associativity-handout.pdf)
+        - [Wikipedia - Cache Placement Policies](https://en.wikipedia.org/wiki/Cache_placement_policies)
+        - [Algorithmica - Cache Associativity](https://en.algorithmica.org/hpc/cpu-cache/associativity/)
+        - [Berkeley - Cache Associativity](https://csillustrated.berkeley.edu/PDFs/handouts/cache-3-associativity-handout.pdf)
   - title: Cache Bank Conflict
     topic: Memory
     wip: true
@@ -517,8 +517,8 @@ questions:
 
       References:
 
-        - [Wiki](https://en.wikipedia.org/wiki/Branch_predictor)
-        - [Why is processing a sorted array faster than processing an unsorted array?](https://stackoverflow.com/questions/11227809/why-is-processing-a-sorted-array-faster-than-processing-an-unsorted-array)
+        - [Wikipedia - Branch Predictor](https://en.wikipedia.org/wiki/Branch_predictor)
+        - [StackOverflow - Why is processing a sorted array faster than processing an unsorted array?](https://stackoverflow.com/questions/11227809/why-is-processing-a-sorted-array-faster-than-processing-an-unsorted-array)
   - title: Modulo
     topic: CPU
     code1: |
@@ -562,7 +562,7 @@ questions:
 
       References:
       
-      - [Division Algorithm - Wiki](https://en.wikipedia.org/wiki/Division_algorithm)
+      - [Wikipedia - Division Algorithm](https://en.wikipedia.org/wiki/Division_algorithm)
   - title: Power Of Two
     topic: CPU
     code1: |
@@ -609,7 +609,7 @@ questions:
 
       References:
 
-      - [Superscalar Processor - Wiki](https://en.wikipedia.org/wiki/Superscalar_processor)
+      - [Wikipedia - Superscalar Processor](https://en.wikipedia.org/wiki/Superscalar_processor)
   - title: False Dependency
     topic: CPU
     wip: true
@@ -649,7 +649,7 @@ questions:
 
       References:
 
-      - [Branchless Programming - Algorithmica](https://en.algorithmica.org/hpc/pipelining/branchless/)
+      - [Algorithmica - Branchless Programming](https://en.algorithmica.org/hpc/pipelining/branchless/)
   - title: No Branch 2
     topic: CPU
     code1: |
@@ -730,8 +730,8 @@ questions:
 
       References:
       
-      - [Register Allocation - Wiki](https://en.wikipedia.org/wiki/Register_allocation)
-      - [Register Renaming - Wiki](https://en.wikipedia.org/wiki/Register_renaming)
+      - [Wikipedia - Register Allocation](https://en.wikipedia.org/wiki/Register_allocation)
+      - [Wikipedia - Register Renaming](https://en.wikipedia.org/wiki/Register_renaming)
   - title: Jump
     topic: CPU
     code1: |
@@ -759,6 +759,7 @@ questions:
       TODO
 
       References:
+      -
   - title: Pointer Chasing
     topic: CPU
     wip: true
@@ -845,7 +846,7 @@ questions:
 
       References:
       
-      - [Store forwarding by example - easyperf](https://easyperf.net/blog/2018/03/09/Store-forwarding)
+      - [easyperf - Store forwarding by example](https://easyperf.net/blog/2018/03/09/Store-forwarding)
   - title: Async
     topic: CPU
     wip: true
@@ -893,11 +894,11 @@ questions:
 
       References:
 
-      - [GCC Common Function Attribute](https://gcc.gnu.org/onlinedocs/gcc/Common-Function-Attributes.html)
-      - [clang ignoring attribute noinline](https://stackoverflow.com/questions/54481855/clang-ignoring-attribute-noinline)
-      - [GCC Link Time Optimization](https://gcc.gnu.org/wiki/LinkTimeOptimization)
-      - [LLVM Link Time Optimization](https://llvm.org/docs/LinkTimeOptimization.html)
-      - [Profile-Guided Optimization](https://en.wikipedia.org/wiki/Profile-guided_optimization)
+      - [GCC - GCC Common Function Attribute](https://gcc.gnu.org/onlinedocs/gcc/Common-Function-Attributes.html)
+      - [StackOverflow - clang ignoring attribute noinline](https://stackoverflow.com/questions/54481855/clang-ignoring-attribute-noinline)
+      - [GCC - GCC Link Time Optimization](https://gcc.gnu.org/wiki/LinkTimeOptimization)
+      - [LLVM - LLVM Link Time Optimization](https://llvm.org/docs/LinkTimeOptimization.html)
+      - [Wikipedia - Profile-Guided Optimization](https://en.wikipedia.org/wiki/Profile-guided_optimization)
 
   - title: Function Call vs Virtual Function Call
     topic: C++
@@ -964,18 +965,6 @@ questions:
     explain: |
       There are certain optimization that can only optimized for [unsigned integer divison](https://ridiculousfish.com/blog/posts/labor-of-division-episode-iii.html); making it faster in this case.
 
-  - title: Signed vs Unsigned
-    topic: C++
-    wip: true
-    code1: |
-    code2: |
-    answer: 1
-    faster_factor: "1.2"
-    machine: AMD Ryzen 9
-    code_url: https://github.com/hgminh95/fast/blob/main/bench/cpu/signed.cpp
-    explain: |
-      Signed integer is overflow, while unsigned integer are not. So in some cases, the compiler has more constraints to work with, thus enable more optimization.
-
   - title: Restrict
     topic: C++
     code1: |
@@ -1001,7 +990,7 @@ questions:
 
       References:
 
-      - [Restrict - Wiki](https://en.wikipedia.org/wiki/Restrict)
+      - [Wikipedia - Restrict](https://en.wikipedia.org/wiki/Restrict)
   - title: Shared Pointer
     topic: C++
     wip: true
@@ -1043,7 +1032,7 @@ questions:
 
       References:
 
-      - [An informal comparison of the three major implementations of std::string](https://devblogs.microsoft.com/oldnewthing/20240510-00/?p=109742)
+      - [The Old New Thing - An informal comparison of the three major implementations of std::string](https://devblogs.microsoft.com/oldnewthing/20240510-00/?p=109742)
   - title: Chaining Function
     topic: C++
     code1: |
