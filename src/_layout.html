@@ -47,8 +47,11 @@
       -->
 
       <div class="flex flex-1 flex-row items-center justify-end gap-3">
-        <span id="score" class="text-sm cursor-default" title="Your score in no. quizzes solved correct / total quizzes">Score: 0 / 0</span>
-        <a href="http://github.com/hgminh95/fast" rel="noreferrer noopener" target="_blank" aria-label="Github" class="inline-flex items-center justify-center rounded-md font-medium transition-colors duration-100 hover:bg-accent hover:text-accent-foreground p-1.5">
+        <span class="text-sm cursor-default" title="Your score in no. quizzes solved correct / total quizzes">
+          <span class="hidden md:inline">Score:</span>
+          <span id="score" class="break-keep text-nowrap">0 / 0</span>
+        </span>
+        <a href="https://github.com/hgminh95/fast" rel="noreferrer noopener" target="_blank" aria-label="Github" class="inline-flex items-center justify-center rounded-md font-medium transition-colors duration-100 hover:bg-accent hover:text-accent-foreground p-1.5">
           <i class="fa-brands fa-github"></i>
         </a>
       </div>
@@ -74,7 +77,7 @@
       }
 
       const score = document.getElementById("score");
-      score.innerHTML = "Score: " + solvedProblems.length + " / " + {{ questions|length }};
+      score.innerHTML = "" + solvedProblems.length + " / " + {{ questions|length }};
     })();
   </script>
   
@@ -371,8 +374,8 @@ body {
 
   <footer class="relative pb-[env(safe-area-inset-bottom)] bg-[#111111]">
     <hr class="border-neutral-800"/>
-    <div class="w-full mx-auto max-w-screen-xl md:flex md:items-center md:justify-between my-8">
-      <span class="text-sm sm:text-center text-gray-400">Last Updated at 2025.
+    <div class="w-full md:mx-auto mx-5 max-w-screen-xl md:flex md:items-center md:justify-between mt-3 mb-8">
+      <span class="text-sm sm:text-center text-gray-400">Last Updated at 2025
       </span>
       <ul class="flex flex-wrap items-end text-right mt-3 text-sm font-medium text-gray-400 sm:mt-0">
         <li>

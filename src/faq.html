@@ -20,7 +20,7 @@
   <div class="space-y-2" id="accurate">
     <h2 class="font-bold text-xl">How accurate is microbenchmark?</h2>
     <p>There might be a few reasons that you don't want to trust the benchmark result at face value, even if the code is "correct" (if you find any mistake, feel free to send a MR).</p>
-    <p>One reason is the benchmark result varies a lot on the compiler/hardware/existing software. You always to run them yourself at the target setup of your application.</p>
+    <p>One reason is the benchmark result varies a lot on the compiler/hardware/existing software. You always want to run them yourself at the target setup of your application.</p>
     <p>Interpreting the result is another headche:</p>
     <ul class="space-y-2 list-disc ml-5">
       <li>It usually does not take into account the performace when it is mixed up with other code, where resources are shared for the whole app. For example, memory alignment could look good at microbenchmark, but too many aligned memory could lead to increase in cache miss due to cache assosication.</li>

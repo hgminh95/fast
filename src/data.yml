@@ -117,6 +117,10 @@ questions:
 
       Beside `std::fill`, you can use `bzero` or `explicit_bzero`.
 
+      To see the minor page fault, you can use perf,
+
+          $ TODO: perf comand
+
       References:
 
       - [Wikipedia - Minor Page Fault](https://en.wikipedia.org/wiki/Page_fault#Minor)
@@ -161,7 +165,7 @@ questions:
 
       You can use `perf` to see cache miss counter.
 
-      - TODO: perf example here
+          $ TODO: perf example here
 
       References:
       
@@ -202,6 +206,10 @@ questions:
     answer: 1
     faster_factor: 1.25
     explain: |
+      You can see the number of cache miss is smaller in the first code.
+
+          $ TODO perf command here
+
       If you know the memory address that you are going to access, or are likely be
       accessed, you can instruct CPU to prefetch them. That would help to reduce the
       wait if memory access is needed.
@@ -256,6 +264,8 @@ questions:
       1 thread, and the rest to another thread).
 
       To measure effect of false sharing, you can use [perf c2c](https://man7.org/linux/man-pages/man1/perf-c2c.1.html).
+
+          $ TODO: perf example
 
       References:
 
@@ -318,6 +328,8 @@ questions:
 
       To detect cache line contention, you can use `perf c2c`.
 
+          $ TODO: perf command here
+
       References:
       
       - [perf c2c man page](https://man7.org/linux/man-pages/man1/perf-c2c.1.html)
@@ -347,6 +359,8 @@ questions:
       As cache needs to be fast, it needs to be simple. And one way to do that is that each address can only be fit into certain cache entry.
 
       That means even if the cache itself is not full, but there are conflicts (e.g. a lot of address have the same last k-bits) there could be degrade in performance.
+
+          $ TODO:  perf command here
 
       References:
 
@@ -515,6 +529,10 @@ questions:
       CPU can run multiple instructions at the same time, but branch prevents it from happenning. Therefore, CPU try to
       predict result of the branch and execute instructions based on that prediction to keep the utilization high.
 
+      You can use perf to get the count of branch misprediction
+
+          $ TODO: perf command here
+
       References:
 
         - [Wikipedia - Branch Predictor](https://en.wikipedia.org/wiki/Branch_predictor)
@@ -584,6 +602,8 @@ questions:
       - x * 2^n == x << n
       - x % 2^n == x & (1 << n - 1)
 
+      TODO: show corresponding assembly code
+
   - title: Dependency
     topic: CPU
     code1: |
@@ -610,6 +630,7 @@ questions:
       References:
 
       - [Wikipedia - Superscalar Processor](https://en.wikipedia.org/wiki/Superscalar_processor)
+      - TODO: intel manual
   - title: False Dependency
     topic: CPU
     wip: true
@@ -671,6 +692,16 @@ questions:
       Similar to [No Branch](/q/no_branch.html). This is a difference approach, which
       is more general. Instead of having branch, you store the compute result in both
       branch, and discard the incorrect one at the end.
+
+      Though this approach is slower than the other one because it has more dependency
+      between operations, e.g. you need to calculate `arr[i] > 128` before you can add
+      it to the `sum`.
+
+          $ TODO perf command here
+
+      References:
+
+      - TODO
   - title: Well Predicted
     topic: CPU
     code1: |
@@ -690,7 +721,13 @@ questions:
     machine: Apple Macbook Air M2
     code_url: https://github.com/hgminh95/fast/blob/main/bench/cpu/sorted_array.cpp
     explain: |
-      TODO
+      Branch is not neccessarily a bad thing all the time.
+
+          $ TODO perf command here
+
+      References:
+
+      - TODO
   - title: Register Spill
     topic: CPU
     code1: |
@@ -728,6 +765,8 @@ questions:
       loop, and how many loop will it unroll. GCC 13 seems to handle this better, and does not
       fully unroll all 8 loops in this case.
 
+      TODO: show asm code
+
       References:
       
       - [Wikipedia - Register Allocation](https://en.wikipedia.org/wiki/Register_allocation)
@@ -758,8 +797,13 @@ questions:
       32 bytes aligned cmp is significiantly slower. looks like to be on the frontend part.
       TODO
 
+      Usually not a concern.
+
+      TODO: The benchmark is unstable, as instruction address could change.
+
       References:
-      -
+
+      - TODO
   - title: Pointer Chasing
     topic: CPU
     wip: true
@@ -823,6 +867,8 @@ questions:
     machine: AMD Ryzen 9
     code_url: https://github.com/hgminh95/fast/blob/main/bench/cpu/store_forwarding.cpp
     explain: |
+      TODO: The benchmark is not realistic
+
       Even L1 cache is slow sometimes. For example, if you write to a memory address and then load it again later, if the data is in store buffer inside CPU, we don't need to wait for them to commit to L1 or load from L1 again. This optimization in CPU is call store-to-load forwarding. There are certain restriction on when it can be performed, as it need to be done very fast, please check references for more details.
 
       You can use `perf` to measure this.
@@ -940,6 +986,8 @@ questions:
       will be initialized first time when it is called. That mean having an extra check in runtime to figure
       out whether the variable is initialized or not.
 
+      TODO: show asm code
+
       References:
 
       - TODO
@@ -965,6 +1013,10 @@ questions:
     explain: |
       There are certain optimization that can only optimized for [unsigned integer divison](https://ridiculousfish.com/blog/posts/labor-of-division-episode-iii.html); making it faster in this case.
 
+      References:
+
+      - TODO
+
   - title: Restrict
     topic: C++
     code1: |
@@ -987,6 +1039,8 @@ questions:
     code_url: https://github.com/hgminh95/fast/blob/main/bench/cpu/alias.cpp
     explain: |
       `restrict` keyword let the compiler know these 2 pointers will not point to the same address. That allows compiler to assume independence between operations of `a` and `b`, leading to more optimized version.
+
+      TODO: show asm code
 
       References:
 
@@ -1029,6 +1083,8 @@ questions:
       string is small.
 
       For Clang, the small string size is capped at 22 bytes (at the time of writing)
+
+      TODO: show malloc counter
 
       References:
 
@@ -1083,6 +1139,8 @@ questions:
 
       References:
 
+      - TODO
+
   - title: ABI
     topic: C++
     wip: true
@@ -1123,10 +1181,9 @@ questions:
     machine: Apple Macbook Air M2
     code_url: https://github.com/hgminh95/fast/blob/main/bench/cpp/math.cpp
     explain: |
-
       References:
 
-      - [slowpow](https://entropymine.com/imageworsener/slowpow/)
+      - [slowpow](https://entropymine.com/imageworsener/slowpow/) I think it is fixed?
 
   - title: Loop Reordering
     topic: C++
