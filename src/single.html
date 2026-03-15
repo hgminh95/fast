@@ -184,8 +184,8 @@
 
     while (1) {
       let randQId = qIds[Math.floor(Math.random() * qIds.length)];
-      if (randQid != "{{ q.url_id }}") {
-        randomBtn.href = "/q/" + randQid + ".html";
+      if (randQId != "{{ q.url_id }}") {
+        randomBtn.href = "/q/" + randQId + ".html";
         break;
       }
     }
@@ -303,7 +303,7 @@
   </p>
   {% endif %}
   <p class="text-sm italic">
-    * For illustration purpose only, see <a href="/faq.html" target="_blank" class="text-blue-500 hover:text-blue-700">FAQ</a> for more details.
+    * For illustration purposes only, see <a href="/faq.html" target="_blank" class="text-blue-500 hover:text-blue-700">FAQ</a> for more details.
   </p>
 
   <div class="flex w-full">

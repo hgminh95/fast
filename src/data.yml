@@ -236,7 +236,7 @@ questions:
   machine: AMD Ryzen 9
   explain: |
     There are actually a lot of stuff happening here, but the main gist is most of data
-    access in the first code is done in cache, while most in 2nd thread have to go to
+    access in the first code is done in cache, while most in the 2nd code have to go to
     memory (cache miss).
 
     You can use `perf` to see cache miss counter.
@@ -379,18 +379,23 @@ questions:
   faster_factor: 1.2
   machine: AMD Ryzen 9
   code_url: https://github.com/hgminh95/fast/blob/main/bench/memory/false_sharing.cpp
-  explain: "False sharing happens when 2 cores read/write to different variables in\
-    \ the same cache line. In the example,\nFoo struct only has 3 integers, which\
-    \ is smaller than 1 cache line (64 bytes). Therefore, multiple instances of Foo\
-    \ will\nfit into a single cache line, causing the possibility for 2 cores to read/write\
-    \ at the same cache line.\n\nAdding alignment for Foo struct so that 1 cache line\
-    \ only has 1 Foo instance (at the cost of more \nand make the program run faster.\
-    \ Alternatively, you can divide the work between 2 threads differently (e.g. 0-size/2\
-    \ to\n1 thread, and the rest to another thread).\n\nTo measure effect of false\
-    \ sharing, you can use [perf c2c](https://man7.org/linux/man-pages/man1/perf-c2c.1.html).\n\
-    \n    $ perf c2c record bazel-bin/memory/false_sharing\n    $ perf c2c report\n\
-    \nReferences:\n\n  - [Wikipedia - False Sharing](https://en.wikipedia.org/wiki/False_sharing)\n\
-    \  - [docs.kernel.org - False Sharing](https://docs.kernel.org/kernel-hacking/false-sharing.html)\n"
+  explain: |
+    False sharing happens when 2 cores read/write to different variables in the same cache line. In the example,
+    Foo struct only has 3 integers, which is smaller than 1 cache line (64 bytes). Therefore, multiple instances of Foo will
+    fit into a single cache line, causing the possibility for 2 cores to read/write at the same cache line.
+
+    Adding alignment for the Foo struct so that 1 cache line only has 1 Foo instance (at the cost of more memory) makes the program run faster. Alternatively, you can divide the work between 2 threads differently (e.g. 0-size/2 to
+    1 thread, and the rest to another thread).
+
+    To measure effect of false sharing, you can use [perf c2c](https://man7.org/linux/man-pages/man1/perf-c2c.1.html).
+
+        $ perf c2c record bazel-bin/memory/false_sharing
+        $ perf c2c report
+
+    References:
+
+      - [Wikipedia - False Sharing](https://en.wikipedia.org/wiki/False_sharing)
+      - [docs.kernel.org - False Sharing](https://docs.kernel.org/kernel-hacking/false-sharing.html)
   code1_zig: |
     const Foo = struct {
         x: i32, y: i32, z: i32,
@@ -504,9 +509,9 @@ questions:
   machine: AMD Ryzen 9
   code_url: https://github.com/hgminh95/fast/blob/main/bench/memory/lock.cpp
   explain: |
-    Lock-free atomic operation does not mean it is free. Under the hood, works need to be done whenever 2 cores read/write to the same cache line.
+    Lock-free atomic operations do not mean they are free. Under the hood, works need to be done whenever 2 cores read/write to the same cache line.
 
-    In the 2nd example, the contention is much higher since we read/modify sum on every iteration, while in the first one, it is only done 4 times, 1 in each thread. That's to show atomic, if not used properly could lead to degrade in performance.
+    In the 2nd example, the contention is much higher since we read/modify sum on every iteration, while in the first one, it is only done 4 times, 1 in each thread. That's to show atomic, if not used properly could lead to degradation in performance.
 
     To detect cache line contention, you can use `perf c2c`.
 
@@ -560,7 +565,7 @@ questions:
   explain: |
     As cache needs to be fast, it needs to be simple. And one way to do that is that each address can only be fit into certain cache entry.
 
-    That means even if the cache itself is not full, but there are conflicts (e.g. a lot of address have the same last k-bits) there could be degrade in performance.
+    That means even if the cache itself is not full, but there are conflicts (e.g. a lot of address have the same last k-bits) performance could degrade.
 
     With N=128, the inner loop accesses more data per iteration, increasing cache pressure. On some CPUs,
     this leads to more cache evictions and slower performance. The effect depends heavily on the specific
@@ -984,10 +989,10 @@ questions:
   machine: AMD Ryzen 9
   code_url: https://github.com/hgminh95/fast/blob/main/bench/cpu/sorted_array.cpp
   explain: |
-    With sorted array, the condition `arr[i] >= 128` become easy to predicted (always false at the beginning, and then
-    become always true). Without sorted array, that is harder to predict.
+    With sorted array, the condition `arr[i] >= 128` becomes easy to predict (always false at the beginning, and then
+    becomes always true). Without sorted array, that is harder to predict.
 
-    CPU can run multiple instructions at the same time, but branch prevents it from happenning. Therefore, CPU try to
+    CPU can run multiple instructions at the same time, but a branch prevents it from happening. Therefore, the CPU tries to
     predict result of the branch and execute instructions based on that prediction to keep the utilization high.
 
     You can use perf to get the count of branch misprediction
@@ -1050,7 +1055,7 @@ questions:
 
     Beware of the branching penalty though. The above example works because the branch is easily predicted.
 
-    In case where you don't know the divisor in compile time, but you know same value is gonna be used multiple times,
+    In case where you don't know the divisor in compile time, but you know the same value is going to be used multiple times,
     you can use something like [libdivide](https://libdivide.com/)
 
     References:
@@ -1206,8 +1211,8 @@ questions:
   machine: AMD Ryzen 9
   code_url: https://github.com/hgminh95/fast/blob/main/bench/cpu/sorted_array.cpp
   explain: |
-    Eventhough there are a lot more instructions in the 2nd example, eliminating
-    branch make it faster due to higher of parallelism achieved on the CPU.
+    Even though there are a lot more instructions in the 2nd example, eliminating
+    the branch makes it faster due to a higher degree of parallelism achieved on the CPU.
 
     Part of a reason that compiler does not optimize the first example is because
     it is not obvious the branchless edition is faster. As you see in `Sorted Array`,
@@ -1285,7 +1290,7 @@ questions:
   machine: AMD Ryzen 9
   code_url: https://github.com/hgminh95/fast/blob/main/bench/cpu/sorted_array.cpp
   explain: |
-    Branch is not neccessarily a bad thing all the time. When the branch is well-predicted (as with sorted data),
+    A branch is not necessarily a bad thing all the time. When the branch is well-predicted (as with sorted data),
     it allows the CPU to skip unnecessary work entirely. The branchless version always computes the index and
     does the conditional store, which is more work per iteration.
 
@@ -1510,21 +1515,21 @@ questions:
   explain: "Even L1 cache is slow sometimes. For example, if you write to a memory\
     \ address and then load it again later, if the data is in store buffer inside\
     \ CPU, we don't need to wait for them to commit to L1 or load from L1 again. This\
-    \ optimization in CPU is call store-to-load forwarding. There are certain restriction\
-    \ on when it can be performed, as it need to be done very fast, please check references\
-    \ for more details.\n\nYou can use `perf` to measure this.\n\n    $ perf list\n\
-    \    ls_stlf\n      [Store-to-load-forward (STLF) hits]\n\n    $ 'bazel-bin/cpu/store_forwarding\
-    \ --benchmark_filter=BM_StoreForwarding<Foo1> --benchmark_min_time=100x':\n  \
-    \  410,195,410      L1-dcache-loads                                          \
-    \             \n    100,300,709      ls_stlf\n\n    $ 'bazel-bin/cpu/store_forwarding\
-    \ --benchmark_filter=BM_StoreForwarding<Foo2> --benchmark_min_time=100x':\n  \
-    \  209,280,067      L1-dcache-loads                                          \
-    \             \n    200,245,122      ls_stlf\n\nNote that above benchmark works\
-    \ because:\n\n- It rely on a fact the compiler cannot optimize the `Store` function\
-    \ to store 64 bytes directly.\n- We add a memory fence to prevent compiler from\
-    \ reordering the write before read. Removing that, the 2nd code is still faster,\
-    \ but because of different reason.\n\nReferences:\n\n- [easyperf - Store forwarding\
-    \ by example](https://easyperf.net/blog/2018/03/09/Store-forwarding)\n"
+    \ optimization in the CPU is called store-to-load forwarding. There are certain\
+    \ restriction on when it can be performed, as it needs to be done very fast, please\
+    \ check references for more details.\n\nYou can use `perf` to measure this.\n\n\
+    \    $ perf list\n    ls_stlf\n      [Store-to-load-forward (STLF) hits]\n\n \
+    \   $ 'bazel-bin/cpu/store_forwarding --benchmark_filter=BM_StoreForwarding<Foo1>\
+    \ --benchmark_min_time=100x':\n    410,195,410      L1-dcache-loads          \
+    \                                             \n    100,300,709      ls_stlf\n\
+    \n    $ 'bazel-bin/cpu/store_forwarding --benchmark_filter=BM_StoreForwarding<Foo2>\
+    \ --benchmark_min_time=100x':\n    209,280,067      L1-dcache-loads          \
+    \                                             \n    200,245,122      ls_stlf\n\
+    \nNote that above benchmark works because:\n\n- It relies on the fact that the\
+    \ compiler cannot optimize the `Store` function to store 8 bytes directly.\n-\
+    \ We add a memory fence to prevent compiler from reordering the write before read.\
+    \ Removing that, the 2nd code is still faster, but for a different reason.\n\n\
+    References:\n\n- [easyperf - Store forwarding by example](https://easyperf.net/blog/2018/03/09/Store-forwarding)\n"
   code1_zig: |
     const Elem = extern struct {
         part1: i32 = 0,
@@ -1612,16 +1617,16 @@ questions:
   explain: |
     [Inlining function](https://en.wikipedia.org/wiki/Inline_expansion) could be faster because it:
 
-    - Eliminate the cost of calling function. The cost will making some changes to some register, pushing thing to stack, and then a jump on the code.
+    - Eliminate the cost of calling function. The cost involves making changes to registers, pushing things to the stack, and then a jump in the code.
     - Enable more optimization on the caller since the compiler has more info on how a function works. Depending on the cases, this would be the larger benefit.
 
     The drawback, however, is larger code size, and that could lead to more icache miss.
 
-    For a function to be inlined in C++, it needs to be defined on the header, or link time optimization is enabled.
+    For a function to be inlined in C++, it needs to be defined in the header, or link time optimization is enabled.
 
     Compiler on average can decide on which function, or where a function should be inlined better than human, especially with profile guided optimization. However, there are cases that you might want to use these attribute manually, e.g. if you know for sure a function is always in a critical path, and it will not lead to code bloat; or if the path that you want to optimize for is not hot (executed less frequently compared to other paths).
 
-    Beside these attributes, there are others inline-related one that could be helpful: flatten
+    Beside these attributes, there are other inline-related attributes that could be helpful, e.g., `flatten`
 
     Note that you might see different results on Clang, due to how these attributes are interpreted.
 
@@ -1690,8 +1695,8 @@ questions:
   machine: AMD Ryzen 9
   code_url: https://github.com/hgminh95/fast/blob/main/bench/cpu/static_variable.cpp
   explain: |
-    Static member variable will be initialized when the application start. Static local variable, however,
-    will be initialized first time when it is called. That mean having an extra check in runtime to figure
+    A static member variable will be initialized when the application starts. Static local variable, however,
+    will be initialized first time when it is called. That means having an extra check in runtime to figure
     out whether the variable is initialized or not.
 
     You can see the guard variable check in the generated assembly with
@@ -1720,7 +1725,7 @@ questions:
   machine: AMD Ryzen 9
   code_url: https://github.com/hgminh95/fast/blob/main/bench/cpu/signed.cpp
   explain: |
-    There are certain optimization that can only optimized for [unsigned integer divison](https://ridiculousfish.com/blog/posts/labor-of-division-episode-iii.html); making it faster in this case.
+    There are certain optimizations that can only be applied to [unsigned integer divison](https://ridiculousfish.com/blog/posts/labor-of-division-episode-iii.html); making it faster in this case.
 
     References:
 
@@ -1869,8 +1874,8 @@ questions:
 
     - icache miss: the 2nd variant will have less icache missed, since we execute a smaller code at a time
     - dcache miss: depending on the Context struct, and these Step1, Step2 function; doing them all in 1 pass could save on the time to load the context member variable or related variables in Step1, Step2 functions
-    - optimization across functions: in the first variant, multiple functions are called at one. There could be optimization that make the speed of 4 functions faster than running each 1 individually.
-    - vectorization: in the 2nd variant, it is easier to vectorize each functions
+    - optimization across functions: in the first variant, multiple functions are called at once. There could be optimization that make the speed of 4 functions faster than running each 1 individually.
+    - vectorization: in the 2nd variant, it is easier to vectorize each function
 
     References:
 

@@ -40,11 +40,11 @@ BM_SingleThread    7807172 ns      7790222 ns           90
 BM_MultiThread      511640 ns       509363 ns         1373
 ```
 
-**NOTE**: Most benchmark are not properly vested at the moment, the number could be misleading.
+**NOTE**: Most benchmarks are not properly vetted at the moment, the numbers could be misleading.
 
 ## Contributions
 
-- Add the website page templates are at [src/](src/)
+- The website page templates are at [src/](src/)
 - All the data (questions, machine specs) is at [src/data.yml](src/data.yml)
 - All the benchmark codes are at [bench/](bench/)
 
