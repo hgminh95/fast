@@ -18,7 +18,7 @@
 
   <link href="/static/prism.css" rel="stylesheet" />
 </head>
-<body>
+<body class="min-h-screen flex flex-col {% block body_class %}{% endblock %}">
   <header class="sticky top-0 z-50 border-b h-16 bg-black">
     <nav class="px-2 md:px-16 flex size-full max-w-container flex-row items-center gap-3">
       <a class="inline-flex items-center gap-2.5 font-semibold" href="/">
@@ -339,7 +339,7 @@ body {
 
   </style>
 
-  <main class="relative flex h-full w-full flex-col items-center overflow-hidden [--gradient-stop-1:0px] [--gradient-stop-2:120px] [--geist-foreground:#000] sm:[--gradient-stop-1:0px] sm:[--gradient-stop-2:120px] min-h-[90vh]">
+  <main class="relative flex flex-1 w-full flex-col items-center overflow-hidden [--gradient-stop-1:0px] [--gradient-stop-2:120px] [--geist-foreground:#000] sm:[--gradient-stop-1:0px] sm:[--gradient-stop-2:120px] min-h-0">
     <div class="pointer-events-none absolute left-0 top-0 h-full w-full overflow-hidden">
       <div class="absolute z-[-1] h-full w-full [--gradient-stop-1:60%] [--gradient-stop-2:85%] lg:[--gradient-stop-1:50%] lg:[--gradient-stop-2:90%] [--gradient-color-1=rgba(0,0,0,1)] [--gradient-color-2=rgba(0,0,0,0.8)] [--gradient-color-3=rgba(0,0,0,0)] dark:[--gradient-color-1=rgba(255,255,255,1)] dark:[--gradient-color-2=rgba(255,255,255,0.8)] dark:[--gradient-color-3=rgba(255,255,255,0)]" style="background:linear-gradient(180deg, var(--gradient-color-1) 0%, var(--gradient-color-2) var(--gradient-stop-1), var(--gradient-color-3) var(--gradient-stop-2), 100% transparent)"></div>
       <span class="_no-sidebar__leftLights__RqgLF opacity-100"></span>
@@ -354,9 +354,9 @@ body {
       {% endblock %}
     </div>
 
-    <div class="z-10 flex h-full w-full flex-col items-center justify-center">
+    <div class="z-10 flex flex-1 w-full flex-col items-center justify-center min-h-0">
       {% block page_title %}
-      <h1 class="mx-6 mt-12 w-[300px] bg-gradient-to-b bg-clip-text pb-4 text-center text-5xl font-extrabold leading-tight text-transparent from-white to-[#AAAAAA] md:!w-full lg:text-5xl">
+      <h1 class="mx-6 w-[300px] bg-gradient-to-b bg-clip-text pb-4 text-center text-5xl font-extrabold leading-tight text-transparent from-white to-[#AAAAAA] md:!w-full lg:text-5xl">
         Which One is Faster?
       </h1>
 
@@ -364,17 +364,17 @@ body {
         Learning Performance Optimization Through Quizzes
       </p>
       {% endblock %}
-    </div>
 
-    <div class="z-10 container mt-2 mb-4 px-2">
-      {% block content %}{% endblock %}
+      <div class="container mt-2 px-2">
+        {% block content %}{% endblock %}
+      </div>
     </div>
   </main>
   <script src="/static/prism.js"></script>
 
   <footer class="relative pb-[env(safe-area-inset-bottom)] bg-[#111111]">
     <hr class="border-neutral-800"/>
-    <div class="w-full md:mx-auto mx-5 max-w-screen-xl md:flex md:items-center md:justify-between mt-3 mb-8">
+    <div class="w-full md:mx-auto mx-5 max-w-screen-xl md:flex md:items-center md:justify-between mt-2 mb-2">
       <span class="text-sm sm:text-center text-gray-400">Last Updated at 2025
       </span>
       <ul class="flex flex-wrap items-end text-right mt-3 text-sm font-medium text-gray-400 sm:mt-0">

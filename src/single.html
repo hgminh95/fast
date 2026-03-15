@@ -1,5 +1,7 @@
 {% extends "_layout.html" %}
 
+{% block body_class %}min-h-screen{% endblock %}
+
 {% block title %}
 {{ q.title }}
 {% endblock %}
@@ -95,9 +97,9 @@
       const container = document.getElementById('code-panels');
       const panels = Array.from(container.children);
       container.insertBefore(panels[1], panels[0]);
-      // Swap onclick handlers
-      panels[0].setAttribute('onclick', 'select(2)');
-      panels[1].setAttribute('onclick', 'select(1)');
+      // Swap onclick handlers on the select buttons
+      panels[0].querySelector('.select-btn').setAttribute('onclick', 'select(2)');
+      panels[1].querySelector('.select-btn').setAttribute('onclick', 'select(1)');
       answer = answer === 1 ? 2 : 1;
     }
   })();
@@ -205,9 +207,22 @@
       zigBtn.classList.remove('bg-transparent');
       zigBlocks.forEach(el => {
         let code = el.querySelector('code');
-        if (code) {
-          code.textContent = code.textContent;
-          Prism.highlightElement(code);
+        if (code && !code.dataset.zigHighlighted) {
+          let raw = code.textContent;
+          code.innerHTML = Prism.highlight(raw, Prism.languages.zig, 'zig');
+          // Add line numbers (matching Prism line-numbers plugin)
+          let lines = raw.split('\n');
+          if (lines[lines.length - 1] === '') lines.pop();
+          let spans = lines.map(() => '<span></span>').join('');
+          let lineRows = el.querySelector('.line-numbers-rows');
+          if (!lineRows) {
+            lineRows = document.createElement('span');
+            lineRows.className = 'line-numbers-rows';
+            code.appendChild(lineRows);
+          }
+          lineRows.innerHTML = spans;
+          el.classList.add('line-numbers');
+          code.dataset.zigHighlighted = 'true';
         }
       });
     } else {
@@ -261,20 +276,20 @@
   </div>
   {% endif %}
   <div id="code-panels" class="z-10 flex w-full flex-col items-center justify-center gap-6 sm:mx-0 md:mb-0 lg:!translate-y-0 lg:!flex-row">
-    <div id="code1" class="code-panel relative flex h-full w-full max-w-full flex-col items-center border border-gray-700 bg-black pb-3" onclick="select(1)">
+    <div id="code1" class="code-panel relative flex h-full w-full max-w-full flex-col items-center border border-gray-700 bg-black pb-3">
       <pre class="code-cpp w-full !mt-0 h-80 text-sm"><code class="language-{% if q.topic == 'RTL' %}verilog{% else %}cpp{% endif %} line-numbers" data-prismjs-copy="Copy">{{ q.code1 }}</code></pre>
       {% if "code1_zig" in q %}
       <pre class="code-zig w-full !mt-0 h-80 text-sm" style="display: none"><code class="language-zig line-numbers" data-prismjs-copy="Copy">{{ q.code1_zig }}</code></pre>
       {% endif %}
-      <div id="desc1" class="select-btn mt-2">^ This is {% if q.topic == 'RTL' %}Lower Latency{% else %}Faster{% endif %}?</div>
+      <div id="desc1" class="select-btn mt-2" onclick="select(1)">^ This is {% if q.topic == 'RTL' %}Lower Latency{% else %}Faster{% endif %}?</div>
     </div>
 
-    <div id="code2" class="code-panel relative flex h-full w-full max-w-full flex-col items-center border border-gray-700 bg-black pb-3" onclick="select(2)">
+    <div id="code2" class="code-panel relative flex h-full w-full max-w-full flex-col items-center border border-gray-700 bg-black pb-3">
       <pre class="code-cpp w-full !mt-0 h-80 text-sm"><code class="language-{% if q.topic == 'RTL' %}verilog{% else %}cpp{% endif %} line-numbers" data-prismjs-copy="Copy">{{ q.code2 }}</code></pre>
       {% if "code2_zig" in q %}
       <pre class="code-zig w-full !mt-0 h-80 text-sm" style="display: none"><code class="language-zig line-numbers" data-prismjs-copy="Copy">{{ q.code2_zig }}</code></pre>
       {% endif %}
-      <div id="desc2" class="select-btn mt-2">^ This is {% if q.topic == 'RTL' %}Lower Latency{% else %}Faster{% endif %}?</div>
+      <div id="desc2" class="select-btn mt-2" onclick="select(2)">^ This is {% if q.topic == 'RTL' %}Lower Latency{% else %}Faster{% endif %}?</div>
     </div>
   </div>
   {% if "machine" in q %}
