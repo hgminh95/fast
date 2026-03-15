@@ -1,6 +1,5 @@
 common --show_timestamps
 common --color=yes
-common --enable_bzlmod
 
 build --verbose_failures
 

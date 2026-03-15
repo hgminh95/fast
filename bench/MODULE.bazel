@@ -5,24 +5,25 @@ module(
 )
 
 # Due to this issue: https://github.com/bazelbuild/bazel/issues/21579
-bazel_dep(name = "apple_support", version = "1.8.1")
+bazel_dep(name = "apple_support", version = "1.24.2")
 
-bazel_dep(name = "google_benchmark", version = "1.8.5")
+bazel_dep(name = "rules_cc", version = "0.2.17")
+bazel_dep(name = "google_benchmark", version = "1.9.4")
 
-bazel_dep(name = "rules_cuda", version = "0.2.1")
+bazel_dep(name = "rules_cuda", version = "0.3.0")
 
 cuda = use_extension("@rules_cuda//cuda:extensions.bzl", "toolchain")
-cuda.local_toolchain(
-    name = "local_cuda",
+cuda.toolkit(
+    name = "cuda",
     toolkit_path = "",
 )
-use_repo(cuda, "local_cuda")
+use_repo(cuda, "cuda")
 
-bazel_dep(name = "rules_zig", version = "0.6.1")
+bazel_dep(name = "rules_zig", version = "0.12.3")
 zig = use_extension(
     "@rules_zig//zig:extensions.bzl",
     "zig",
     dev_dependency = True,
 )
-zig.toolchain(zig_version = "0.13.0")
+zig.toolchain(zig_version = "0.14.1")
 use_repo(zig, "zig_toolchains")

@@ -6,12 +6,11 @@
 
 For the website:
 
-- Python 3.9 or above
-- Everything in requirements.txt
+- [uv](https://docs.astral.sh/uv/)
 
 For the benchmark:
 
-- Bazel 7
+- Bazel 9
 - C++ compiler that supports C++23
 
 ## Usage
@@ -19,10 +18,14 @@ For the benchmark:
 To build the website,
 
 ```
-$ python3 gen.py --watch
+$ uv run python gen.py --watch
 ```
 
-The static files will be generated at `_build`. You can use `python3 -m http.server` to serve these static files.
+The static files will be generated at `_build`. To serve them locally,
+
+```
+$ cd _build && python3 -m http.server
+```
 
 To run the benchmark,
 

@@ -1,30 +1,26 @@
 #include <benchmark/benchmark.h>
 
-#include <thread>
 #include <atomic>
 #include <chrono>
+#include <thread>
 
 struct Base {
   __attribute__((noinline)) virtual int AddVirt(int a, int b) noexcept = 0;
 };
 
 struct Adder : public Base {
-  __attribute__((always_inline)) int AddInline(int a, int b) {
-    return a + b;
-  }
+  __attribute__((always_inline)) int AddInline(int a, int b) { return a + b; }
 
   __attribute__((noinline)) int Add(int a, int b) noexcept {
-    asm ("endbr64");
+    asm("endbr64");
     return a + b;
   }
 
-  __attribute__((noinline)) int AddVirt(int a, int b) noexcept override {
-    return a + b;
-  }
+  __attribute__((noinline)) int AddVirt(int a, int b) noexcept override { return a + b; }
 };
 
 __attribute__((noinline)) int Add(int a, int b) noexcept {
-  asm ("endbr64");
+  asm("endbr64");
   return a + b;
 }
 
@@ -32,7 +28,7 @@ std::vector<int> MakeArr() {
   srand(time(NULL));
 
   std::vector<int> arr(1'000'000);
-  for (auto &x : arr) {
+  for (auto& x : arr) {
     x = rand() % 256;
   }
 
@@ -70,7 +66,7 @@ static void BM_VirtualFunction(benchmark::State& state) {
 
   for (auto _ : state) {
     int sum{0};
-    Base *adder = new Adder();
+    Base* adder = new Adder();
     for (auto i = 0u; i < arr.size(); ++i) {
       sum = adder->AddVirt(sum, arr[i]);
     }

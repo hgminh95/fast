@@ -1,13 +1,13 @@
 #include <benchmark/benchmark.h>
 
-__attribute__((noinline)) void Add2ElemsRestrict(int * __restrict a, int * __restrict b, int x) {
+__attribute__((noinline)) void Add2ElemsRestrict(int* __restrict a, int* __restrict b, int x) {
   for (int i = 0; i < 50; ++i) {
     a[i] += x;
     b[i] += x;
   }
 }
 
-__attribute__((noinline)) void Add2Elems(int *a, int *b, int x) {
+__attribute__((noinline)) void Add2Elems(int* a, int* b, int x) {
   for (int i = 0; i < 50; ++i) {
     a[i] += x;
     b[i] += x;

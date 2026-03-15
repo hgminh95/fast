@@ -1,14 +1,14 @@
 #include <benchmark/benchmark.h>
 
-#include <thread>
 #include <atomic>
 #include <chrono>
+#include <thread>
 
 std::vector<int> MakeArr() {
   srand(time(NULL));
 
   std::vector<int> arr(1'000'000);
-  for (auto &x : arr) {
+  for (auto& x : arr) {
     x = rand() % 256;
   }
 

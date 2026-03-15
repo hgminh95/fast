@@ -1,10 +1,10 @@
 #include <benchmark/benchmark.h>
 
-#include "common/array.h"
-
-#include <thread>
 #include <atomic>
 #include <chrono>
+#include <thread>
+
+#include "common/array.h"
 
 struct Context {
   int a;
@@ -14,17 +14,14 @@ struct Context {
   int e{1};
   int f{2};
 
-  Context() {
-    a = rand() % 1000;
-  }
+  Context() { a = rand() % 1000; }
 };
 
 void Step1(Context &ctx) {
   ctx.a += ctx.a;
   ctx.c *= ctx.a;
   ctx.b -= ctx.a;
-  if (ctx.b == 0) 
-    ctx.b = 1;
+  if (ctx.b == 0) ctx.b = 1;
   ctx.f -= 100;
   ctx.a = (ctx.a + ctx.a) / ctx.b + ctx.c * ctx.d - ctx.e % ctx.f;
 }
@@ -33,13 +30,12 @@ void Step2(Context &ctx) {
   ctx.c += ctx.b;
   ctx.d *= ctx.b;
   ctx.e -= ctx.b;
-  if (ctx.e == 0) 
-    ctx.e = 1;
+  if (ctx.e == 0) ctx.e = 1;
   ctx.f -= 100;
   ctx.b = (ctx.b + ctx.c) / ctx.e + ctx.d * ctx.d - ctx.f % ctx.e;
 }
 
-static void BM_ChainFunction(benchmark::State& state) {
+static void BM_ChainFunction(benchmark::State &state) {
   auto contexts = MakeArr<Context>(1'000'000);
 
   for (auto _ : state) {
@@ -61,7 +57,7 @@ static void BM_ChainFunction(benchmark::State& state) {
   }
 }
 
-static void BM_ChainFunction2(benchmark::State& state) {
+static void BM_ChainFunction2(benchmark::State &state) {
   auto contexts = MakeArr<Context>(1'000'000);
 
   for (auto _ : state) {

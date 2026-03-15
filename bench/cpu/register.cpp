@@ -2,12 +2,8 @@
 
 #include "common/array.h"
 
-#include <thread>
-#include <atomic>
-#include <chrono>
-
 template <size_t N>
-static void BM_Register(benchmark::State& state) {
+__attribute__((optimize("no-tree-vectorize"))) static void BM_Register(benchmark::State& state) {
   auto arr = MakeArr(1'000'000);
 
   for (auto _ : state) {

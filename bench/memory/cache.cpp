@@ -1,10 +1,10 @@
 #include <benchmark/benchmark.h>
 
-#include "common/array.h"
-
-#include <thread>
 #include <atomic>
 #include <chrono>
+#include <thread>
+
+#include "common/array.h"
 
 template <size_t N>
 static void BM_Cache(benchmark::State& state) {

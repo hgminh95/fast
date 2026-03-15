@@ -1,10 +1,10 @@
 #include <benchmark/benchmark.h>
 
-#include "common/array.h"
-
-#include <thread>
 #include <atomic>
 #include <chrono>
+#include <thread>
+
+#include "common/array.h"
 
 static void BM_Dependency(benchmark::State& state) {
   auto a = MakeArr(90);

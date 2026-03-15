@@ -1,7 +1,7 @@
 #pragma once
 
-#include <vector>
 #include <type_traits>
+#include <vector>
 
 template <typename T = int>
 std::vector<T> MakeArr(int size = 1'000'000) {
@@ -16,4 +16,3 @@ std::vector<T> MakeArr(int size = 1'000'000) {
 
   return arr;
 }
-

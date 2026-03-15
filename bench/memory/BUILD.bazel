@@ -1,8 +1,49 @@
-load("//common:bazel.bzl", "bench")
+load("//common:bazel.bzl", "bench", "zig_bench")
 
 bench(name = "vs_compute")
+
 bench(name = "page")
+
 bench(name = "write")
+
 bench(name = "false_sharing")
+
 bench(name = "cache")
+
 bench(name = "lock")
+
+bench(name = "tlb_miss")
+
+bench(name = "tlb_shootdown")
+
+bench(name = "true_sharing")
+
+bench(name = "misalign")
+
+bench(name = "pause")
+
+bench(name = "recharge")
+
+zig_bench(name = "vs_compute")
+
+zig_bench(name = "page")
+
+zig_bench(name = "write")
+
+zig_bench(name = "false_sharing")
+
+zig_bench(name = "cache")
+
+zig_bench(name = "lock")
+
+zig_bench(name = "tlb_miss")
+
+zig_bench(name = "tlb_shootdown")
+
+zig_bench(name = "true_sharing")
+
+zig_bench(name = "misalign")
+
+zig_bench(name = "pause")
+
+zig_bench(name = "recharge")

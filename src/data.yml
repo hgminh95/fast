@@ -1,1381 +1,2408 @@
 machines:
-  - name: Apple Macbook Air M2
-    specs: |
-      CPU: Apple M2
-      RAM: LPDDR5 16GB
-      Compiler: Homebrew Clang 17.0.6
-      Kernel: Darwin Kernel Version 22.2.0: Fri Nov 11 02:06:26 PST 2022; root:xnu-8792.61.2~4/RELEASE_ARM64_T8112
-      ... more to come
-  - name: AMD Ryzen 9
-    specs: |
-      CPU: AMD Ryzen 9 7900X 12-Core Processor
-      RAM: 2x DDR5 16GB
-      Compiler: GCC 13.2.0-23ubuntu4
-      Kernel: Linux 6.8.0-41-generic
-      ... more to come
-
+- name: Apple Macbook Air M2
+  specs: |
+    CPU: Apple M2
+    RAM: LPDDR5 16GB
+    Compiler: Homebrew Clang 17.0.6
+    Kernel: Darwin Kernel Version 22.2.0: Fri Nov 11 02:06:26 PST 2022; root:xnu-8792.61.2~4/RELEASE_ARM64_T8112
+    ... more to come
+- name: AMD Ryzen 9
+  specs: |
+    CPU: AMD Ryzen 9 7900X 12-Core Processor
+    RAM: 2x DDR5 16GB
+    Compiler: GCC 13.2.0-23ubuntu4
+    Kernel: Linux 6.8.0-41-generic
+    ... more to come
 questions:
-  - title: Memory vs Compute
-    topic: Memory
-    code1: |
-      struct Foo {
-        int values[30];
-        int cached_bar{0};
+- title: Memory vs Compute
+  topic: Memory
+  code1: |
+    struct Foo {
+      int values[30];
+      int cached_bar{0};
 
-        int bar() {
-          if (cached_bar == 0) {
-            for (int i = 0; i < 30; ++i) {
-              cached_bar += values[i] * i;
-            }
-          }
-
-          return cached_bar;
-        }
-      };
-
-      std::vector<Foo> arr(1'000'000);
-
-      for (auto &foo : arr) {
-        Use(foo.bar());
-      }
-    code2: |
-      struct Foo {
-        int values[30];
-
-        int bar() {
-          int res{0};
+      int bar() {
+        if (cached_bar == 0) {
           for (int i = 0; i < 30; ++i) {
-            res += values[i] * i;
+            cached_bar += values[i] * i;
           }
-          return res;
         }
-      };
 
-      std::vector<Foo> arr(1'000'000);
-
-      for (auto &foo : arr) {
-        Use(foo.bar());
+        return cached_bar;
       }
-    answer: 2
-    faster_factor: 3
-    code_url: https://github.com/hgminh95/fast/blob/main/bench/memory/vs_memory.cpp
-    machine: Apple Macbook Air M2
-    explain: |
-      TODO: say that memory is more common to be the issue
+    };
 
-      In this example, the actual factor that cause majority of slow down is due to the
-      write instruction. TODO go to next example.
+    std::vector<Foo> arr(1'000'000);
 
-      References:
+    for (auto &foo : arr) {
+      Use(foo.bar());
+    }
+  code2: |
+    struct Foo {
+      int values[30];
 
-      - TODO: find something
-  - title: TLB Miss
-    wip: true
-    topic: Memory
-    code1: |
-      #include cpp
-      int main() {
-      }
-    code2: |
-      #include cpp
-      int main() {
-      }
-    answer: 1
-    faster_factor: 2
-    machine: Apple Macbook Air M2
-    explain: |
-      References:
-
-      - [Wikipedia - Translation Lookaside Buffer](https://en.wikipedia.org/wiki/Translation_lookaside_buffer)
-  - title: Zero Initialized Array
-    topic: Memory
-    code1: |
-      std::vector<int> arr;
-      arr.resize(100'000'000);
-      std::fill(arr.begin(), arr.end(), 0);
-
-      # Only measure this part
-      for (auto i = 0u; i < arr.size(); ++i) {
-        arr[i] = i;
-      }
-    code2: |
-      std::vector<int> arr;
-      arr.resize(100'000'000);
-
-      # Only measure this part
-      for (auto i = 0u; i < arr.size(); ++i) {
-        arr[i] = i;
-      }
-    answer: 1
-    faster_factor: 1.15
-    code_url: https://github.com/hgminh95/fast/blob/main/bench/memory/page.cpp
-    machine: Apple Macbook Air M2
-    explain: |
-      First time you access a page, it will trigger a minor page fault, that could be
-      a bit slower. Zero-initialize the memory region will trigger the minor page
-      fault, to make subsequent access faster.
-
-      Beside `std::fill`, you can use `bzero` or `explicit_bzero`.
-
-      To see the minor page fault, you can use perf,
-
-          $ TODO: perf comand
-
-      References:
-
-      - [Wikipedia - Minor Page Fault](https://en.wikipedia.org/wiki/Page_fault#Minor)
-  - title: Cache vs Memory
-    topic: Memory
-    code1: |
-      constexpr int STRIDE = 1;
-
-      for (auto i = 0u; i < arr.size(); ++i) {
-        arr[i] = (i + STRIDE) % arr.size();
-      }
-
-      # Measure below part only
-      int sum{0};
-      int p{0};
-      for (auto i = 0u; i < arr.size(); ++i) {
-        sum += arr[p];
-        p = arr[p];
-      }
-    code2: |
-      constexpr int STRIDE = 4096;
-
-      for (auto i = 0u; i < arr.size(); ++i) {
-        arr[i] = (i + STRIDE) % arr.size();
-      }
-
-      # Measure below part only
-      int sum{0};
-      int p{0};
-      for (auto i = 0u; i < arr.size(); ++i) {
-        sum += arr[p];
-        p = arr[p];
-      }
-    answer: 1
-    faster_factor: 14.7
-    code_url: https://github.com/hgminh95/fast/blob/main/bench/memory/cache.cpp
-    machine: Apple Macbook Air M2
-    explain: |
-      There are actually a lot of stuff happening here, but the main gist is most of data
-      access in the first code is done in cache, while most in 2nd thread have to go to
-      memory (cache miss).
-
-      You can use `perf` to see cache miss counter.
-
-          $ TODO: perf example here
-
-      References:
-      
-      - [StackOverflow - Measuring Cache Latencies](https://stackoverflow.com/questions/21369381/measuring-cache-latencies)
-  - title: Prefetch
-    topic: Memory
-    code1: |
-      constexpr int STRIDE = 4096;
-
-      for (auto i = 0u; i < arr.size(); ++i) {
-        arr[i] = (i + STRIDE) % arr.size();
-      }
-
-      # Measure below part only
-      int sum{0};
-      int p{0};
-      for (auto i = 0u; i < arr.size(); ++i) {
-        __builtin_prefetch(&arr[(p + 1 * STRIDE) % arr.size()], 0, 0);
-        __builtin_prefetch(&arr[(p + 2 * STRIDE) % arr.size()], 0, 0);
-
-        sum += arr[p];
-        p = arr[p];
-      }
-    code2: |
-      constexpr int STRIDE = 4096;
-
-      for (auto i = 0u; i < arr.size(); ++i) {
-        arr[i] = (i + STRIDE) % arr.size();
-      }
-
-      # Measure below part only
-      int sum{0};
-      int p{0};
-      for (auto i = 0u; i < arr.size(); ++i) {
-        sum += arr[p];
-        p = arr[p];
-      }
-    answer: 1
-    faster_factor: 1.25
-    explain: |
-      You can see the number of cache miss is smaller in the first code.
-
-          $ TODO perf command here
-
-      If you know the memory address that you are going to access, or are likely be
-      accessed, you can instruct CPU to prefetch them. That would help to reduce the
-      wait if memory access is needed.
-
-      Note that CPU also has a prefetcher, so don't try to do its work, only do this
-      if you think the prefetcher cannot predict the next address.
-
-      References:
-
-      - [Wikipedia - Cache Prefetching](https://en.wikipedia.org/wiki/Cache_prefetching)
-  - title: False Sharing
-    topic: Memory
-    code1: |
-      struct Foo {
-        int x;
-        int y;
-        int z;
-      };
-      std::vector<Foo> arr(100'000);
-
-      # Run in 2 threads
-      for (int i = thread_idx; i < arr.size(); i += 2) {
-        arr[i].x = i;
-        arr[i].y = arr.size() - i;
-        arr[i].z = arr.size() + i;
-      }
-    code2: |
-      struct alignas(64) Foo {
-        int x;
-        int y;
-        int z;
-      };
-      std::vector<Foo> arr(100'000);
-
-      # Run in 2 threads
-      for (int i = thread_idx; i < arr.size(); i += 2) {
-        arr[i].x = i;
-        arr[i].y = arr.size() - i;
-        arr[i].z = arr.size() + i;
-      }
-    answer: 2
-    faster_factor: 1.2
-    machine: Apple Macbook Air M2
-    code_url: https://github.com/hgminh95/fast/blob/main/bench/memory/false_sharing.cpp
-    explain: |
-      False sharing happens when 2 cores read/write to different variables in the same cache line. In the example,
-      Foo struct only has 3 integers, which is smaller than 1 cache line (64 bytes). Therefore, multiple instances of Foo will
-      fit into a single cache line, causing the possibility for 2 cores to read/write at the same cache line.
-
-      Adding alignment for Foo struct so that 1 cache line only has 1 Foo instance (at the cost of more 
-      and make the program run faster. Alternatively, you can divide the work between 2 threads differently (e.g. 0-size/2 to
-      1 thread, and the rest to another thread).
-
-      To measure effect of false sharing, you can use [perf c2c](https://man7.org/linux/man-pages/man1/perf-c2c.1.html).
-
-          $ TODO: perf example
-
-      References:
-
-        - [Wikipedia - False Sharing](https://en.wikipedia.org/wiki/False_sharing)
-        - [docs.kernel.org - False Sharing](https://docs.kernel.org/kernel-hacking/false-sharing.html)
-  - title: True Sharing
-    topic: Memory
-    wip: true
-    code1: |
-      constexpr int N = 128;
-    code2: |
-      constexpr int N = 128;
-    answer: 2
-    faster_factor: 3.4
-    machine: Apple Macbook Air M2
-    code_url: https://github.com/hgminh95/fast/blob/main/bench/memory/cache.cpp
-    explain: |
-      References:
-
-        - [Wikipedia - Cache Replacement Policies](https://en.wikipedia.org/wiki/Cache_placement_policies)
-  - title: Mutex
-    topic: Memory
-    code1: |
-      std::vector<std::thread> threads;
-      std::atomic<int> sum = 0;
-
-      for (int i = 0; i < 4; ++i) {
-        threads.emplace_back([&arr, i, &sum]() {
-          int partial_sum = 0;
-          auto start = i * arr.size() / 4;
-          auto end = (i + 1) * arr.size() / 4;
-          for (int i = start; i < end; ++i) {
-            partial_sum += arr[i];
-          }
-
-          sum += partial_sum;
-        });
-      }
-    code2: |
-      std::vector<std::thread> threads;
-      std::atomic<int> sum = 0;
-
-      for (int i = 0; i < 4; ++i) {
-        threads.emplace_back([&arr, i, &sum]() {
-          auto start = i * arr.size() / 4;
-          auto end = (i + 1) * arr.size() / 4;
-          for (int i = start; i < end; ++i) {
-            sum += arr[i];
-          }
-        });
-      }
-    answer: 1
-    faster_factor: 145.8
-    machine: AMD Ryzen 9
-    code_url: https://github.com/hgminh95/fast/blob/main/bench/memory/lock.cpp
-    explain: |
-      Lock-free atomic operation does not mean it is free. Under the hood, works need to be done whenever 2 cores read/write to the same cache line.
-
-      In the 2nd example, the contention is much higher since we read/modify sum on every iteration, while in the first one, it is only done 4 times, 1 in each thread. That's to show atomic, if not used properly could lead to degrade in performance.
-
-      To detect cache line contention, you can use `perf c2c`.
-
-          $ TODO: perf command here
-
-      References:
-      
-      - [perf c2c man page](https://man7.org/linux/man-pages/man1/perf-c2c.1.html)
-  - title: Cache Associativity
-    topic: Memory
-    code1: |
-      constexpr int N = 64;
-
-      for (auto j = 0u; j < 1024 / N; ++j) {
-        for (auto i = 0u; i < N; ++i) {
-          sum += arr1[i] + arr2[i];
+      int bar() {
+        int res{0};
+        for (int i = 0; i < 30; ++i) {
+          res += values[i] * i;
         }
+        return res;
       }
-    code2: |
-      constexpr int N = 128;
+    };
 
-      for (auto j = 0u; j < 1024 / N; ++j) {
-        for (auto i = 0u; i < N; ++i) {
-          sum += arr1[i] + arr2[i];
+    std::vector<Foo> arr(1'000'000);
+
+    for (auto &foo : arr) {
+      Use(foo.bar());
+    }
+  answer: 2
+  faster_factor: 1.24
+  code_url: https://github.com/hgminh95/fast/blob/main/bench/memory/vs_compute.cpp
+  machine: AMD Ryzen 9
+  explain: |
+    Memory access is often the bottleneck in modern programs, not computation. CPUs are fast, but
+    waiting for data from memory is slow.
+
+    In this example, the cached version stores the computed result. While this saves computation,
+    accessing the cached value still requires a memory read of `cached_bar` (which makes the struct
+    larger and thus fewer fit in a cache line). The recomputation version, on the other hand, is
+    pure computation on data already loaded into registers, which the CPU handles very efficiently.
+
+    References:
+
+    - [What Every Programmer Should Know About Memory](https://people.freebsd.org/~lstewart/articles/cpumemory.pdf)
+  code1_zig: |
+    const FooWithCache = struct {
+        values: [30]i32,
+        cached_bar: i32 = 0,
+
+        fn bar(self: *FooWithCache) i32 {
+            if (self.cached_bar == 0) {
+                for (self.values, 0..) |v, i| {
+                    self.cached_bar +%= v *% @intCast(i);
+                }
+            }
+            return self.cached_bar;
         }
-      }
-    answer: 2
-    faster_factor: 3.4
-    machine: Apple Macbook Air M2
-    code_url: https://github.com/hgminh95/fast/blob/main/bench/memory/cache.cpp
-    explain: |
-      As cache needs to be fast, it needs to be simple. And one way to do that is that each address can only be fit into certain cache entry.
+    };
 
-      That means even if the cache itself is not full, but there are conflicts (e.g. a lot of address have the same last k-bits) there could be degrade in performance.
+    var arr: []FooWithCache = // 1'000'000 elems
 
-          $ TODO:  perf command here
+    for (arr) |*foo| use(foo.bar());
+  code2_zig: |
+    const FooWithoutCache = struct {
+        values: [30]i32,
 
-      References:
-
-        - [Wikipedia - Cache Placement Policies](https://en.wikipedia.org/wiki/Cache_placement_policies)
-        - [Algorithmica - Cache Associativity](https://en.algorithmica.org/hpc/cpu-cache/associativity/)
-        - [Berkeley - Cache Associativity](https://csillustrated.berkeley.edu/PDFs/handouts/cache-3-associativity-handout.pdf)
-  - title: Cache Bank Conflict
-    topic: Memory
-    wip: true
-    code1: |
-      constexpr int N = 1;
-
-      for (auto j = 0u; j < 1024 / N; ++j) {
-        for (auto i = 0u; i < N; ++i) {
-          sum += arr1[i] + arr2[i];
+        fn bar(self: *const FooWithoutCache) i32 {
+            var res: i32 = 0;
+            for (self.values, 0..) |v, i| {
+                res +%= v *% @intCast(i);
+            }
+            return res;
         }
-      }
-    code2: |
-      constexpr int N = 2;
+    };
 
-      for (auto j = 0u; j < 1024 / N; ++j) {
-        for (auto i = 0u; i < N; ++i) {
-          sum += arr1[i] + arr2[i];
+    var arr: []FooWithoutCache = // 1'000'000 elems
+
+    for (arr) |*foo| use(foo.bar());
+- title: TLB Miss
+  topic: Memory
+  code1: |
+    for (auto i = 0u; i < arr.size(); ++i) {
+      sum += arr[i];
+    }
+  code2: |
+    constexpr int PAGE_STRIDE = 4096 / sizeof(int);
+
+    int idx = 0;
+    for (auto i = 0u; i < arr.size(); ++i) {
+      sum += arr[idx];
+      idx = (idx + PAGE_STRIDE) % arr.size();
+    }
+  answer: 1
+  faster_factor: 11.5
+  machine: AMD Ryzen 9
+  code_url: https://github.com/hgminh95/fast/blob/main/bench/memory/tlb_miss.cpp
+  explain: |
+    The CPU uses a Translation Lookaside Buffer (TLB) to cache virtual-to-physical address translations.
+    Sequential access accesses pages in order, so the TLB entries stay cached. Striding by one page
+    per access rapidly exhausts the TLB, causing TLB misses on every access.
+
+    Each TLB miss requires a page table walk, which can take hundreds of cycles. The TLB is typically
+    small (e.g., 64 entries for L1 dTLB), so accessing many different pages quickly evicts entries.
+
+    References:
+
+    - [Wikipedia - Translation Lookaside Buffer](https://en.wikipedia.org/wiki/Translation_lookaside_buffer)
+    - [Algorithmica - Virtual Memory](https://en.algorithmica.org/hpc/cpu-cache/paging/)
+  code1_zig: |
+    for (arr) |x| {
+        sum +%= x;
+    }
+  code2_zig: |
+    const PAGE_STRIDE = 4096 / @sizeOf(i32);
+
+    var idx: usize = 0;
+    for (0..arr.len) |_| {
+        sum +%= arr[idx];
+        idx = (idx + PAGE_STRIDE) % arr.len;
+    }
+- title: Zero Initialized Array
+  topic: Memory
+  code1: |
+    std::vector<int> arr;
+    arr.resize(100'000'000);
+    std::fill(arr.begin(), arr.end(), 0);
+
+    # Only measure this part
+    for (auto i = 0u; i < arr.size(); ++i) {
+      arr[i] = i;
+    }
+  code2: |
+    std::vector<int> arr;
+    arr.resize(100'000'000);
+
+    # Only measure this part
+    for (auto i = 0u; i < arr.size(); ++i) {
+      arr[i] = i;
+    }
+  answer: 1
+  faster_factor: 1
+  code_url: https://github.com/hgminh95/fast/blob/main/bench/memory/page.cpp
+  machine: AMD Ryzen 9
+  explain: |
+    First time you access a page, it will trigger a minor page fault, that could be
+    a bit slower. Zero-initialize the memory region will trigger the minor page
+    fault, to make subsequent access faster.
+
+    Beside `std::fill`, you can use `bzero` or `explicit_bzero`.
+
+    Note: on some CPUs and kernel configurations, the effect is negligible as the OS
+    may pre-fault pages or handle faults very efficiently.
+
+        $ perf stat -e page-faults,minor-faults bazel-bin/memory/page
+
+    References:
+
+    - [Wikipedia - Minor Page Fault](https://en.wikipedia.org/wiki/Page_fault#Minor)
+  code1_zig: |
+    var arr = try allocator.alloc(i32, 100_000_000);
+    @memset(arr, 0);
+
+    // Only measure this part
+    for (arr, 0..) |*x, i| {
+        x.* = @intCast(i);
+    }
+  code2_zig: |
+    var arr = try allocator.alloc(i32, 100_000_000);
+
+    // Only measure this part
+    for (arr, 0..) |*x, i| {
+        x.* = @intCast(i);
+    }
+- title: Cache vs Memory
+  topic: Memory
+  code1: |
+    constexpr int STRIDE = 1;
+
+    for (auto i = 0u; i < arr.size(); ++i) {
+      arr[i] = (i + STRIDE) % arr.size();
+    }
+
+    # Measure below part only
+    int sum{0};
+    int p{0};
+    for (auto i = 0u; i < arr.size(); ++i) {
+      sum += arr[p];
+      p = arr[p];
+    }
+  code2: |
+    constexpr int STRIDE = 4096;
+
+    for (auto i = 0u; i < arr.size(); ++i) {
+      arr[i] = (i + STRIDE) % arr.size();
+    }
+
+    # Measure below part only
+    int sum{0};
+    int p{0};
+    for (auto i = 0u; i < arr.size(); ++i) {
+      sum += arr[p];
+      p = arr[p];
+    }
+  answer: 1
+  faster_factor: 2.4
+  code_url: https://github.com/hgminh95/fast/blob/main/bench/memory/cache.cpp
+  machine: AMD Ryzen 9
+  explain: |
+    There are actually a lot of stuff happening here, but the main gist is most of data
+    access in the first code is done in cache, while most in 2nd thread have to go to
+    memory (cache miss).
+
+    You can use `perf` to see cache miss counter.
+
+        $ perf stat -e cache-misses,cache-references,LLC-load-misses bazel-bin/memory/cache
+
+    References:
+
+    - [StackOverflow - Measuring Cache Latencies](https://stackoverflow.com/questions/21369381/measuring-cache-latencies)
+  code1_zig: |
+    const STRIDE = 1;
+
+    for (arr, 0..) |*x, i| x.* = @intCast((i + STRIDE) % arr.len);
+
+    // Measure below part only
+    var sum: i32 = 0;
+    var p: usize = 0;
+    for (0..arr.len) |_| {
+        sum +%= arr[p];
+        p = @intCast(@as(u32, @bitCast(arr[p])));
+    }
+  code2_zig: |
+    const STRIDE = 4096;
+
+    for (arr, 0..) |*x, i| x.* = @intCast((i + STRIDE) % arr.len);
+
+    // Measure below part only
+    var sum: i32 = 0;
+    var p: usize = 0;
+    for (0..arr.len) |_| {
+        sum +%= arr[p];
+        p = @intCast(@as(u32, @bitCast(arr[p])));
+    }
+- title: Prefetch
+  topic: Memory
+  code1: |
+    constexpr int STRIDE = 4096;
+
+    for (auto i = 0u; i < arr.size(); ++i) {
+      arr[i] = (i + STRIDE) % arr.size();
+    }
+
+    # Measure below part only
+    int sum{0};
+    int p{0};
+    for (auto i = 0u; i < arr.size(); ++i) {
+      __builtin_prefetch(&arr[(p + 1 * STRIDE) % arr.size()], 0, 0);
+      __builtin_prefetch(&arr[(p + 2 * STRIDE) % arr.size()], 0, 0);
+
+      sum += arr[p];
+      p = arr[p];
+    }
+  code2: |
+    constexpr int STRIDE = 4096;
+
+    for (auto i = 0u; i < arr.size(); ++i) {
+      arr[i] = (i + STRIDE) % arr.size();
+    }
+
+    # Measure below part only
+    int sum{0};
+    int p{0};
+    for (auto i = 0u; i < arr.size(); ++i) {
+      sum += arr[p];
+      p = arr[p];
+    }
+  answer: 1
+  faster_factor: 1.25
+  explain: |
+    You can see the number of cache miss is smaller in the first code.
+
+        $ perf stat -e cache-misses,cache-references bazel-bin/memory/cache --benchmark_filter=BM_StrideAccess
+
+    If you know the memory address that you are going to access, or are likely be
+    accessed, you can instruct CPU to prefetch them. That would help to reduce the
+    wait if memory access is needed.
+
+    Note that CPU also has a prefetcher, so don't try to do its work, only do this
+    if you think the prefetcher cannot predict the next address.
+
+    References:
+
+    - [Wikipedia - Cache Prefetching](https://en.wikipedia.org/wiki/Cache_prefetching)
+  code1_zig: |
+    const STRIDE = 4096;
+
+    for (arr, 0..) |*x, i| x.* = @intCast((i + STRIDE) % arr.len);
+
+    // Measure below part only
+    var sum: i32 = 0;
+    var p: usize = 0;
+    for (0..arr.len) |_| {
+        std.mem.prefetch(&arr[(p + STRIDE) % arr.len]);
+        sum +%= arr[p];
+        p = @intCast(@as(u32, @bitCast(arr[p])));
+    }
+  code2_zig: |
+    const STRIDE = 4096;
+
+    for (arr, 0..) |*x, i| x.* = @intCast((i + STRIDE) % arr.len);
+
+    // Measure below part only
+    var sum: i32 = 0;
+    var p: usize = 0;
+    for (0..arr.len) |_| {
+        sum +%= arr[p];
+        p = @intCast(@as(u32, @bitCast(arr[p])));
+    }
+- title: False Sharing
+  topic: Memory
+  code1: |
+    struct Foo {
+      int x;
+      int y;
+      int z;
+    };
+    std::vector<Foo> arr(100'000);
+
+    # Run in 2 threads
+    for (int i = thread_idx; i < arr.size(); i += 2) {
+      arr[i].x = i;
+      arr[i].y = arr.size() - i;
+      arr[i].z = arr.size() + i;
+    }
+  code2: |
+    struct alignas(64) Foo {
+      int x;
+      int y;
+      int z;
+    };
+    std::vector<Foo> arr(100'000);
+
+    # Run in 2 threads
+    for (int i = thread_idx; i < arr.size(); i += 2) {
+      arr[i].x = i;
+      arr[i].y = arr.size() - i;
+      arr[i].z = arr.size() + i;
+    }
+  answer: 2
+  faster_factor: 1.2
+  machine: AMD Ryzen 9
+  code_url: https://github.com/hgminh95/fast/blob/main/bench/memory/false_sharing.cpp
+  explain: "False sharing happens when 2 cores read/write to different variables in\
+    \ the same cache line. In the example,\nFoo struct only has 3 integers, which\
+    \ is smaller than 1 cache line (64 bytes). Therefore, multiple instances of Foo\
+    \ will\nfit into a single cache line, causing the possibility for 2 cores to read/write\
+    \ at the same cache line.\n\nAdding alignment for Foo struct so that 1 cache line\
+    \ only has 1 Foo instance (at the cost of more \nand make the program run faster.\
+    \ Alternatively, you can divide the work between 2 threads differently (e.g. 0-size/2\
+    \ to\n1 thread, and the rest to another thread).\n\nTo measure effect of false\
+    \ sharing, you can use [perf c2c](https://man7.org/linux/man-pages/man1/perf-c2c.1.html).\n\
+    \n    $ perf c2c record bazel-bin/memory/false_sharing\n    $ perf c2c report\n\
+    \nReferences:\n\n  - [Wikipedia - False Sharing](https://en.wikipedia.org/wiki/False_sharing)\n\
+    \  - [docs.kernel.org - False Sharing](https://docs.kernel.org/kernel-hacking/false-sharing.html)\n"
+  code1_zig: |
+    const Foo = struct {
+        x: i32, y: i32, z: i32,
+    };
+    var arr: []Foo = // 100'000 elems
+
+    // Run in 2 threads
+    var i: usize = thread_idx;
+    while (i < arr.len) : (i += 2) {
+        arr[i].x = @intCast(i);
+        arr[i].y = @intCast(arr.len - i);
+        arr[i].z = @intCast(arr.len + i);
+    }
+  code2_zig: |
+    const Foo = struct {
+        x: i32, y: i32, z: i32,
+        _pad: [52]u8 = .{0} ** 52, // align to 64 bytes
+    };
+    var arr: []Foo = // 100'000 elems
+
+    // Run in 2 threads
+    var i: usize = thread_idx;
+    while (i < arr.len) : (i += 2) {
+        arr[i].x = @intCast(i);
+        arr[i].y = @intCast(arr.len - i);
+        arr[i].z = @intCast(arr.len + i);
+    }
+- title: True Sharing
+  topic: Memory
+  code1: |
+    std::atomic<int> counter{0};
+
+    # Run in 4 threads
+    for (int i = 0; i < 100'000; ++i) {
+      counter.fetch_add(1);
+    }
+  code2: |
+    std::atomic<int> counter{0};
+
+    # Run in 4 threads
+    int local = 0;
+    for (int i = 0; i < 100'000; ++i) {
+      local++;
+    }
+    counter.fetch_add(local);
+  answer: 2
+  faster_factor: 36
+  machine: AMD Ryzen 9
+  code_url: https://github.com/hgminh95/fast/blob/main/bench/memory/true_sharing.cpp
+  explain: |
+    Unlike false sharing, true sharing happens when multiple threads genuinely need to read/write
+    the same variable. In the first example, every thread contends on the same atomic counter,
+    causing the cache line to bounce between cores on every operation (MESI protocol invalidations).
+
+    The fix is to accumulate locally and only update the shared counter once at the end, reducing
+    the number of cross-core cache line transfers from N to 1 per thread.
+
+    References:
+
+    - [Wikipedia - Cache Coherence](https://en.wikipedia.org/wiki/Cache_coherence)
+    - [Wikipedia - MESI Protocol](https://en.wikipedia.org/wiki/MESI_protocol)
+  code1_zig: |
+    var counter = std.atomic.Value(i32).init(0);
+
+    // Run in 4 threads
+    for (0..100_000) |_| {
+        _ = counter.fetchAdd(1, .monotonic);
+    }
+  code2_zig: |
+    var counter = std.atomic.Value(i32).init(0);
+
+    // Run in 4 threads
+    var local: i32 = 0;
+    for (0..100_000) |_| {
+        local += 1;
+    }
+    _ = counter.fetchAdd(local, .monotonic);
+- title: Mutex
+  topic: Memory
+  code1: |
+    std::vector<std::thread> threads;
+    std::atomic<int> sum = 0;
+
+    for (int i = 0; i < 4; ++i) {
+      threads.emplace_back([&arr, i, &sum]() {
+        int partial_sum = 0;
+        auto start = i * arr.size() / 4;
+        auto end = (i + 1) * arr.size() / 4;
+        for (int i = start; i < end; ++i) {
+          partial_sum += arr[i];
         }
-      }
-    answer: 1
-    faster_factor: 33.7
-    machine: Apple Macbook Air M2
-    code_url: https://github.com/hgminh95/fast/blob/main/bench/memory/cache.cpp
-    explain: |
-      TODO
-  - title: Memory Bank Conflict
-    topic: Memory
-    wip: true
-    code1: |
-      constexpr int N = 1;
-    code2: |
-      constexpr int N = 2;
-    answer: 1
-    faster_factor: 33.7
-    machine: Apple Macbook Air M2
-    code_url: https://github.com/hgminh95/fast/blob/main/bench/memory/cache.cpp
-    explain: |
-      TODO
-  - title: TLB Shoot Down
-    topic: Memory
-    wip: true
-    code1: |
-      for (int i = 0; i < 10'000'000; ++i) {
-        sum += a[i % 1'000'000];
-      }
-    code2: |
-      # Thread 1
-      for (int i = 0; i < 1'000'000; ++i) {
-        sum += a[i % 1'000'000];
-      }
 
-      # Thread 2
-      while (++cnt) {
-        if (cnt % 2 == 0)
-          x = new int[10000];
-        else
-          delete [] x;
-      }
-    answer: 1
-    faster_factor: 2
-    machine: Apple Macbook Air M2
-    code_url: https://github.com/hgminh95/fast/blob/main/bench/memory/tlb_shootdown.cpp
-    explain: |
-      TODO
-  - title: Paused
-    topic: Memory
-    wip: true
-    code1: |
-      a
-    code2: |
-      b
-    answer: 1
-    faster_factor: 2
-    machine: Apple Macbook Air M2
-    code_url: https://github.com/hgminh95/fast/blob/main/bench/memory/tlb_shootdown.cpp
-    explain: |
-      TODO
-  - title: Misalign
-    wip: true
-    topic: Memory
-    code1: |
-      a
-    code2: |
-      b
-    answer: 1
-    faster_factor: 2
-    machine: Apple Macbook Air M2
-    code_url: https://github.com/hgminh95/fast/blob/main/bench/memory/tlb_shootdown.cpp
-    explain: |
-      TODO
-  - title: Recharge
-    wip: true
-    topic: Memory
-    code1: |
-      a
-    code2: |
-      b
-    answer: 1
-    faster_factor: 2
-    machine: Apple Macbook Air M2
-    code_url: https://github.com/hgminh95/fast/blob/main/bench/memory/tlb_shootdown.cpp
-    explain: |
-      TODO
-  - title: Mooore Write
-    wip: true
-    topic: Memory
-    code1: |
-      a
-    code2: |
-      b
-    answer: 1
-    faster_factor: 2
-    machine: Apple Macbook Air M2
-    code_url: https://github.com/hgminh95/fast/blob/main/bench/memory/write.cpp
-    explain: |
-      TODO
-  - title: Non Temporal Write
-    wip: true
-    topic: Memory
-    code1: |
-      a
-    code2: |
-      b
-    answer: 1
-    faster_factor: 2
-    machine: Apple Macbook Air M2
-    code_url: https://github.com/hgminh95/fast/blob/main/bench/memory/write.cpp
-    explain: |
-      TODO
+        sum += partial_sum;
+      });
+    }
+  code2: |
+    std::vector<std::thread> threads;
+    std::atomic<int> sum = 0;
 
-  - title: Sorted Array
-    topic: CPU
-    code1: |
-      std::vector<int> arr(100'000);
-      # then fill with random value in [0, 256]
-
-      for (auto i = 0u; i < 100'000; ++i) {
-        if (arr[i] >= 128)
+    for (int i = 0; i < 4; ++i) {
+      threads.emplace_back([&arr, i, &sum]() {
+        auto start = i * arr.size() / 4;
+        auto end = (i + 1) * arr.size() / 4;
+        for (int i = start; i < end; ++i) {
           sum += arr[i];
-      }
-    code2: |
-      std::vector<int> arr(100'000);
-      # then fill with random value in [0, 256]
-
-      # do not benchmark this sort function
-      std::sort(arr.begin(), arr.end())
-
-      for (auto i = 0u; i < 100'000; ++i) {
-        if (arr[i] >= 128)
-          sum += arr[i];
-      }
-    answer: 2
-    faster_factor: 9.6
-    machine: Apple Macbook Air M2
-    code_url: https://github.com/hgminh95/fast/blob/main/bench/cpu/sorted_array.cpp
-    explain: |
-      With sorted array, the condition `arr[i] >= 128` become easy to predicted (always false at the beginning, and then
-      become always true). Without sorted array, that is harder to predict.
-
-      CPU can run multiple instructions at the same time, but branch prevents it from happenning. Therefore, CPU try to
-      predict result of the branch and execute instructions based on that prediction to keep the utilization high.
-
-      You can use perf to get the count of branch misprediction
-
-          $ TODO: perf command here
-
-      References:
-
-        - [Wikipedia - Branch Predictor](https://en.wikipedia.org/wiki/Branch_predictor)
-        - [StackOverflow - Why is processing a sorted array faster than processing an unsorted array?](https://stackoverflow.com/questions/11227809/why-is-processing-a-sorted-array-faster-than-processing-an-unsorted-array)
-  - title: Modulo
-    topic: CPU
-    code1: |
-      std::array<int, 5> modulos{11, 107, 1013, 19211, 81727};
-
-      for (auto i = 0u; i < arr.size(); ++i) {
-        sum += arr[i] % modulos[i * 5 / arr.size()];
-      }
-    code2: |
-      for (auto i = 0u; i < arr.size(); ++i) {
-        switch (i * 5 / arr.size()) {
-          case 0:
-            sum += arr[i] % 11;
-            break;
-          case 1:
-            sum += arr[i] % 107;
-            break;
-          case 2:
-            sum += arr[i] % 1013;
-            break;
-          case 3:
-            sum += arr[i] % 19211;
-            break;
-          case 4:
-            sum += arr[i] % 81727;
-            break;
         }
+      });
+    }
+  answer: 1
+  faster_factor: 145.8
+  machine: AMD Ryzen 9
+  code_url: https://github.com/hgminh95/fast/blob/main/bench/memory/lock.cpp
+  explain: |
+    Lock-free atomic operation does not mean it is free. Under the hood, works need to be done whenever 2 cores read/write to the same cache line.
+
+    In the 2nd example, the contention is much higher since we read/modify sum on every iteration, while in the first one, it is only done 4 times, 1 in each thread. That's to show atomic, if not used properly could lead to degrade in performance.
+
+    To detect cache line contention, you can use `perf c2c`.
+
+        $ perf c2c record bazel-bin/memory/lock
+        $ perf c2c report
+
+    References:
+
+    - [perf c2c man page](https://man7.org/linux/man-pages/man1/perf-c2c.1.html)
+  code1_zig: |
+    var sum = std.atomic.Value(i32).init(0);
+
+    // Run in 4 threads
+    var partial_sum: i32 = 0;
+    const start = id * arr.len / 4;
+    const end = (id + 1) * arr.len / 4;
+    for (arr[start..end]) |x| partial_sum +%= x;
+
+    _ = sum.fetchAdd(partial_sum, .monotonic);
+  code2_zig: |
+    var sum = std.atomic.Value(i32).init(0);
+
+    // Run in 4 threads
+    const start = id * arr.len / 4;
+    const end = (id + 1) * arr.len / 4;
+    for (arr[start..end]) |x| {
+        _ = sum.fetchAdd(x, .monotonic);
+    }
+- title: Cache Associativity
+  topic: Memory
+  code1: |
+    constexpr int N = 128;
+
+    for (auto j = 0u; j < 1024 / N; ++j) {
+      for (auto i = 0u; i < N; ++i) {
+        sum += arr1[i] + arr2[i];
       }
-    answer: 2
-    faster_factor: 1.3
-    machine: Apple Macbook Air M2
-    code_url: https://github.com/hgminh95/fast/blob/main/bench/cpu/modulo.cpp
-    explain: |
-      Integer modulo (and division) operation in CPU is slow. But there is a trick to convert
-      [division by a constant into multiplication](https://en.wikipedia.org/wiki/Division_algorithm#Division_by_a_constant).
+    }
+  code2: |
+    constexpr int N = 64;
 
-      Beware of the branching penalty though. The above example works because the branch is easily predicted.
-
-      In case where you don't know the divisor in compile time, but you know same value is gonna be used multiple times,
-      you can use something like [libdivide](https://libdivide.com/)
-
-      References:
-      
-      - [Wikipedia - Division Algorithm](https://en.wikipedia.org/wiki/Division_algorithm)
-  - title: Power Of Two
-    topic: CPU
-    code1: |
-      int foo(int x) {
-        return x % 3; 
+    for (auto j = 0u; j < 1024 / N; ++j) {
+      for (auto i = 0u; i < N; ++i) {
+        sum += arr1[i] + arr2[i];
       }
-    code2: |
-      int foo(int x) {
-        return x % 128; 
-      }
-    answer: 2
-    faster_factor: 1.2
-    machine: Apple Macbook Air M2
-    code_url: https://github.com/hgminh95/fast/blob/main/bench/cpu/power_of_two.cpp
-    explain: |
-      Arithmetic operation with power of two can usually be converted into bit shift, or mask
-      operation, which is quite cheap
+    }
+  answer: 1
+  faster_factor: 1.6
+  machine: AMD Ryzen 9
+  code_url: https://github.com/hgminh95/fast/blob/main/bench/memory/cache.cpp
+  explain: |
+    As cache needs to be fast, it needs to be simple. And one way to do that is that each address can only be fit into certain cache entry.
 
-      - x * 2^n == x << n
-      - x % 2^n == x & (1 << n - 1)
+    That means even if the cache itself is not full, but there are conflicts (e.g. a lot of address have the same last k-bits) there could be degrade in performance.
 
-      TODO: show corresponding assembly code
+    With N=128, the inner loop accesses more data per iteration, increasing cache pressure. On some CPUs,
+    this leads to more cache evictions and slower performance. The effect depends heavily on the specific
+    cache architecture (size, associativity, replacement policy).
 
-  - title: Dependency
-    topic: CPU
-    code1: |
-      for (auto i = 0u; i < 90; ++i) {
-        sum *= 10;
-        sum += a[i];
-      }
-    code2: |
-      for (auto i = 0u; i < 90; i += 3) {
-        sum *= 1000;
-        sum += a[i] * 100;
-        sum += a[i + 1] * 10;
-        sum += a[i + 2];
-      }
-    answer: 2
-    faster_factor: 1.3
-    machine: Apple Macbook Air M2
-    code_url: https://github.com/hgminh95/fast/blob/main/bench/cpu/dependency.cpp
-    explain: |
-      The first code has to be run sequentially pretty much, since the add operation
-      must be done after * 10 operation. While in the 2nd code, there are 3 add
-      operation that can be done in any order, thus enable more parallelism in CPU.
+        $ perf stat -e cache-misses,cache-references bazel-bin/memory/cache --benchmark_filter=BM_Cache
 
-      References:
+    References:
 
-      - [Wikipedia - Superscalar Processor](https://en.wikipedia.org/wiki/Superscalar_processor)
-      - TODO: intel manual
-  - title: False Dependency
-    topic: CPU
-    wip: true
-    code1: |
-      #include
-    code2: |
-      #include
-    answer: 2
-    faster_factor: 2
-    machine: Apple Macbook Air M2
-    code_url: https://github.com/hgminh95/fast/blob/main/bench/cpu/sorted_array.cpp
-    explain: |
-      TODO
-  - title: No Branch
-    topic: CPU
-    code1: |
-      for (auto i = 0u; i < arr.size(); ++i) {
-        if (arr[i] > 128)
-          sum += arr[i];
-      }
-    code2: |
-      for (auto i = 0u; i < arr.size(); ++i) {
-        sum += arr[i] * (arr[i] > 128);
-      }
-    answer: 2
-    faster_factor: 9
-    machine: Apple Macbook Air M2
-    code_url: https://github.com/hgminh95/fast/blob/main/bench/cpu/sorted_array.cpp
-    explain: |
-      Eventhough there are a lot more instructions in the 2nd example, eliminating
-      branch make it faster due to higher of parallelism achieved on the CPU.
+      - [Wikipedia - Cache Placement Policies](https://en.wikipedia.org/wiki/Cache_placement_policies)
+      - [Algorithmica - Cache Associativity](https://en.algorithmica.org/hpc/cpu-cache/associativity/)
+      - [Berkeley - Cache Associativity](https://csillustrated.berkeley.edu/PDFs/handouts/cache-3-associativity-handout.pdf)
+  code1_zig: |
+    const N = 128;
 
-      Part of a reason that compiler does not optimize the first example is because
-      it is not obvious the branchless edition is faster. As you see in `Sorted Array`,
-      branch one, with a clean pattern, will outperform the branchless one, due to extra
-      computation it needs.
-
-      References:
-
-      - [Algorithmica - Branchless Programming](https://en.algorithmica.org/hpc/pipelining/branchless/)
-  - title: No Branch 2
-    topic: CPU
-    code1: |
-      for (auto i = 0u; i < arr.size(); ++i) {
-        if (arr[i] > 128)
-          sum += arr[i];
-      }
-    code2: |
-      int sum[2] = {0, 0};
-      for (auto i = 0u; i < arr.size(); ++i) {
-        sum[arr[i] > 128] += arr[i];
-      }
-      // The answer is in sum[true]
-    answer: 2
-    faster_factor: 1.83
-    machine: Apple Macbook Air M2
-    code_url: https://github.com/hgminh95/fast/blob/main/bench/cpu/sorted_array.cpp
-    explain: |
-      Similar to [No Branch](/q/no_branch.html). This is a difference approach, which
-      is more general. Instead of having branch, you store the compute result in both
-      branch, and discard the incorrect one at the end.
-
-      Though this approach is slower than the other one because it has more dependency
-      between operations, e.g. you need to calculate `arr[i] > 128` before you can add
-      it to the `sum`.
-
-          $ TODO perf command here
-
-      References:
-
-      - TODO
-  - title: Well Predicted
-    topic: CPU
-    code1: |
-      // The array is sorted beforehand
-      for (auto i = 0u; i < arr.size(); ++i) {
-        if (arr[i] > 128)
-          sum += arr[i];
-      }
-    code2: |
-      int sum[2] = {0, 0};
-      for (auto i = 0u; i < arr.size(); ++i) {
-        sum[arr[i] > 128] += arr[i];
-      }
-      // The answer is in sum[true]
-    answer: 1
-    faster_factor: 5.35
-    machine: Apple Macbook Air M2
-    code_url: https://github.com/hgminh95/fast/blob/main/bench/cpu/sorted_array.cpp
-    explain: |
-      Branch is not neccessarily a bad thing all the time.
-
-          $ TODO perf command here
-
-      References:
-
-      - TODO
-  - title: Register Spill
-    topic: CPU
-    code1: |
-      // arr.size == 1'000'000
-      constexpr int N = 4;
-
-      for (auto i = 0u; i < arr.size(); i += N) {
-        for (int j = 0; j < N; ++j) {
-          sum += arr[i + j] * (i + j);
+    var j: usize = 0;
+    while (j < 1024 / N) : (j += 1) {
+        for (0..N) |i| {
+            sum +%= arr1[i] +% arr2[i];
         }
-      }
-    code2: |
-      // arr.size == 1'000'000
-      constexpr int N = 8;
+    }
+  code2_zig: |
+    const N = 64;
 
-      for (auto i = 0u; i < arr.size(); i += N) {
-        for (int j = 0; j < N; ++j) {
-          sum += arr[i + j] * (i + j);
+    var j: usize = 0;
+    while (j < 1024 / N) : (j += 1) {
+        for (0..N) |i| {
+            sum +%= arr1[i] +% arr2[i];
         }
+    }
+- title: Cache Bank Conflict
+  topic: Memory
+  code1: |
+    constexpr int N = 1;
+
+    for (auto j = 0u; j < 1024 / N; ++j) {
+      for (auto i = 0u; i < N; ++i) {
+        sum += arr1[i] + arr2[i];
       }
-    answer: 1
-    faster_factor: 3.7
-    machine: Apple Macbook Air M2
-    code_url: https://github.com/hgminh95/fast/blob/main/bench/cpu/register.cpp
-    explain: |
-      There are limited amount of registers in CPU. So if the calculation is large amount
-      (in the sense that you need to have a lot intermediate values stored, some will have
-      to go to CPU cache.
+    }
+  code2: |
+    constexpr int N = 2;
 
-      In these 2 examples, the inner loops will be unrolled, as N is small enough. And with
-      larger N, the amount of intermediate values for these calculation grow, leading to
-      downgrade performance.
-
-      Note that this specific example depends heavily on whether the compiler will unroll the 2nd
-      loop, and how many loop will it unroll. GCC 13 seems to handle this better, and does not
-      fully unroll all 8 loops in this case.
-
-      TODO: show asm code
-
-      References:
-      
-      - [Wikipedia - Register Allocation](https://en.wikipedia.org/wiki/Register_allocation)
-      - [Wikipedia - Register Renaming](https://en.wikipedia.org/wiki/Register_renaming)
-  - title: Jump
-    topic: CPU
-    code1: |
-      for (auto i = 0u; i < 100'000; ++i) {
-        asm("nop");
-        asm("nop");
-        asm("nop");
-        ...
-        // 15 times
+    for (auto j = 0u; j < 1024 / N; ++j) {
+      for (auto i = 0u; i < N; ++i) {
+        sum += arr1[i] + arr2[i];
       }
-    code2: |
-      for (auto i = 0u; i < 100'000; ++i) {
-        asm("nop");
-        asm("nop");
-        asm("nop");
-        ...
-        // 14 times
-      }
-    answer: 1
-    faster_factor: 1.16
-    machine: AMD Ryzen 9
-    code_url: https://github.com/hgminh95/fast/blob/main/bench/cpu/jump.cpp
-    explain: |
-      32 bytes aligned cmp is significiantly slower. looks like to be on the frontend part.
-      TODO
+    }
+  answer: 2
+  faster_factor: 1.4
+  machine: AMD Ryzen 9
+  code_url: https://github.com/hgminh95/fast/blob/main/bench/memory/cache.cpp
+  explain: |
+    L1 cache is organized into banks that can be accessed independently. When two simultaneous
+    accesses map to the same bank, one must wait for the other (a bank conflict).
 
-      Usually not a concern.
+    With N=1, the inner loop is very tight and the compiler can optimize the access pattern
+    to avoid conflicts. With N=2, the access pattern to arr1 and arr2 may cause bank conflicts
+    depending on how the arrays are laid out in memory relative to cache bank boundaries.
 
-      TODO: The benchmark is unstable, as instruction address could change.
+    Note: this effect is highly dependent on the specific CPU microarchitecture and array alignment.
 
-      References:
+    References:
 
-      - TODO
-  - title: Pointer Chasing
-    topic: CPU
-    wip: true
-    code1: |
-      #include
-    code2: |
-      #include
-    answer: 2
-    faster_factor: 2
-    machine: Apple Macbook Air M2
-    code_url: https://github.com/hgminh95/fast/blob/main/bench/cpu/sorted_array.cpp
-    explain: |
-      TODO
-  - title: Store-To-Load Forwarding
-    topic: CPU
-    code1: |
-      struct Elem {
-        int32_t part1{0};
-        int32_t part2{0};
-      
-        void Store(int32_t x) {
-          part1 = 0;
-          part2 = x;
+    - [Agner Fog - Microarchitecture](https://www.agner.org/optimize/microarchitecture.pdf)
+  code1_zig: |
+    const N = 1;
+
+    var j: usize = 0;
+    while (j < 1024 / N) : (j += 1) {
+        for (0..N) |i| {
+            sum +%= arr1[i] +% arr2[i];
         }
-      
-        int64_t Load() {
-          return *reinterpret_cast<int64_t*>(this);
+    }
+  code2_zig: |
+    const N = 2;
+
+    var j: usize = 0;
+    while (j < 1024 / N) : (j += 1) {
+        for (0..N) |i| {
+            sum +%= arr1[i] +% arr2[i];
         }
-      };
+    }
+- title: Memory Bank Conflict
+  topic: Memory
+  code1: |
+    for (auto i = 0u; i < arr.size(); ++i) {
+      sum += arr[i];
+    }
+  code2: |
+    constexpr int ROW_SIZE = 8192 / sizeof(int);
+    int idx = 0;
+    for (auto i = 0u; i < arr.size(); ++i) {
+      sum += arr[idx];
+      idx = (idx + ROW_SIZE) % arr.size();
+    }
+  answer: 1
+  faster_factor: 11.3
+  machine: AMD Ryzen 9
+  code_url: https://github.com/hgminh95/fast/blob/main/bench/memory/recharge.cpp
+  explain: |
+    DRAM is organized into banks, each with a row buffer. Accessing data in the currently open
+    row (row buffer hit) is fast. Accessing a different row requires closing the current row
+    and opening the new one (row buffer miss/conflict), which adds significant latency.
 
-      volatile uint16_t x;
+    Sequential access benefits from row buffer locality. Strided access that jumps between
+    rows in the same bank causes repeated row buffer misses.
 
-      for (auto &elem : arr) {
-        elem.Store(x);
-        std::atomic_thread_fence(std::memory_order_seq_cst);
-        sum += elem.Load();
+    References:
+
+    - [Wikipedia - DRAM](https://en.wikipedia.org/wiki/Dynamic_random-access_memory)
+    - [What Every Programmer Should Know About Memory](https://people.freebsd.org/~lstewart/articles/cpumemory.pdf)
+  code1_zig: |
+    for (arr) |x| {
+        sum +%= x;
+    }
+  code2_zig: |
+    const ROW_SIZE = 8192 / @sizeOf(i32);
+    var idx: usize = 0;
+    for (0..arr.len) |_| {
+        sum +%= arr[idx];
+        idx = (idx + ROW_SIZE) % arr.len;
+    }
+- title: TLB Shoot Down
+  topic: Memory
+  code1: |
+    for (int i = 0; i < 10'000'000; ++i) {
+      sum += a[i % 1'000'000];
+    }
+  code2: |
+    # Thread 1
+    for (int i = 0; i < 1'000'000; ++i) {
+      sum += a[i % 1'000'000];
+    }
+
+    # Thread 2
+    while (++cnt) {
+      if (cnt % 2 == 0)
+        x = new int[10000];
+      else
+        delete [] x;
+    }
+  answer: 1
+  faster_factor: 9.6
+  machine: AMD Ryzen 9
+  code_url: https://github.com/hgminh95/fast/blob/main/bench/memory/tlb_shootdown.cpp
+  explain: |
+    When one core modifies page tables (e.g., via memory allocation/deallocation), it must
+    invalidate TLB entries on other cores that might have cached those mappings. This is called
+    a TLB shootdown and requires an inter-processor interrupt (IPI), which is expensive.
+
+    In the second example, thread 2 constantly allocates and frees memory, causing frequent
+    page table changes. The OS sends TLB shootdown IPIs to other cores, disrupting thread 1's
+    TLB and forcing expensive page table walks.
+
+    References:
+
+    - [Wikipedia - TLB Shootdown](https://en.wikipedia.org/wiki/Translation_lookaside_buffer#TLB_shootdown)
+    - [LWN - TLB Shootdowns](https://lwn.net/Articles/885956/)
+  code1_zig: |
+    for (0..10_000_000) |i| {
+        sum +%= a[i % 1_000_000];
+    }
+  code2_zig: |
+    // Thread 1
+    for (0..1_000_000) |i| {
+        sum +%= a[i % 1_000_000];
+    }
+
+    // Thread 2
+    while (true) {
+        const mem = try allocator.alloc(i32, 10000);
+        allocator.free(mem);
+    }
+- title: Paused
+  topic: Memory
+  code1: |
+    while (lock.exchange(true)) {
+      pause();
+    }
+    lock.store(false);
+  code2: |
+    while (lock.exchange(true)) {
+    }
+    lock.store(false);
+  answer: 1
+  faster_factor: 1.1
+  machine: AMD Ryzen 9
+  code_url: https://github.com/hgminh95/fast/blob/main/bench/memory/pause.cpp
+  explain: |
+    The PAUSE instruction (x86) or YIELD (ARM) hints to the CPU that the current thread is in
+    a spin-wait loop. Without it, the CPU's speculative execution engine fills the pipeline with
+    spin iterations, which must all be discarded when the lock becomes available.
+
+    PAUSE also reduces power consumption and avoids causing memory order violations that slow
+    down both the spinning core and the core holding the lock. The effect is most visible under
+    contention with multiple threads competing for the same lock.
+
+    References:
+
+    - [Intel - PAUSE Instruction](https://www.intel.com/content/www/us/en/docs/cpp-compiler/developer-guide-reference/2021-8/pause-intrinsic.html)
+    - [ARM - YIELD Instruction](https://developer.arm.com/documentation/ddi0596/2020-12/Base-Instructions/YIELD--YIELD-)
+  code1_zig: |
+    while (lock.swap(true, .acquire)) {
+        asm volatile ("pause");
+    }
+    lock.store(false, .release);
+  code2_zig: |
+    while (lock.swap(true, .acquire)) {
+    }
+    lock.store(false, .release);
+- title: Misalign
+  topic: Memory
+  code1: |
+    std::vector<int64_t> arr(1'000'000);
+    for (auto i = 0u; i < arr.size(); ++i) {
+      sum += arr[i];
+    }
+  code2: |
+    char buf[N * sizeof(int64_t) + 3];
+    char* p = buf + 3;
+    for (int i = 0; i < N; ++i) {
+      int64_t v;
+      memcpy(&v, p + i * sizeof(int64_t), sizeof(int64_t));
+      sum += v;
+    }
+  answer: 1
+  faster_factor: 1.06
+  machine: AMD Ryzen 9
+  code_url: https://github.com/hgminh95/fast/blob/main/bench/memory/misalign.cpp
+  explain: |
+    Misaligned memory access occurs when data is not naturally aligned to its size boundary
+    (e.g., a 8-byte int64_t at an address not divisible by 8). On modern x86 CPUs, misaligned
+    access is handled in hardware with a small performance penalty.
+
+    The penalty is small on modern x86 (~5%) because the CPU can split the access across cache
+    lines transparently. However, on some architectures (e.g., older ARM), misaligned access can
+    cause a fault or be significantly slower.
+
+    The performance impact is larger when the misaligned access crosses a cache line boundary
+    (64 bytes), requiring two cache line fetches instead of one.
+
+    References:
+
+    - [Wikipedia - Data Structure Alignment](https://en.wikipedia.org/wiki/Data_structure_alignment)
+  code1_zig: |
+    var arr: []i64 = // 1'000'000 aligned elems
+    for (arr) |x| {
+        sum +%= x;
+    }
+  code2_zig: |
+    var buf: []u8 = // offset by 3 bytes
+    const ptr: [*]align(1) i64 = @ptrCast(buf.ptr + 3);
+    for (0..N) |i| {
+        sum +%= ptr[i];
+    }
+- title: Recharge
+  topic: Memory
+  code1: |
+    for (auto i = 0u; i < arr.size(); ++i) {
+      sum += arr[i];
+    }
+  code2: |
+    constexpr int ROW_SIZE = 8192 / sizeof(int);
+    int idx = 0;
+    for (auto i = 0u; i < arr.size(); ++i) {
+      sum += arr[idx];
+      idx = (idx + ROW_SIZE) % arr.size();
+    }
+  answer: 1
+  faster_factor: 11.3
+  machine: AMD Ryzen 9
+  code_url: https://github.com/hgminh95/fast/blob/main/bench/memory/recharge.cpp
+  explain: |
+    DRAM stores data as electrical charges in capacitors. After reading a row, the data is
+    temporarily held in a row buffer. Accessing the same row again (row buffer hit) is fast.
+    Accessing a different row requires precharging (closing) the current row and activating
+    the new one, adding significant latency.
+
+    Sequential access naturally exploits row buffer locality. Large strides that cross row
+    boundaries cause row buffer misses, requiring the full precharge-activate-read cycle.
+
+    References:
+
+    - [Wikipedia - DRAM Row Buffer](https://en.wikipedia.org/wiki/Dynamic_random-access_memory#Memory_timing)
+    - [What Every Programmer Should Know About Memory](https://people.freebsd.org/~lstewart/articles/cpumemory.pdf)
+  code1_zig: |
+    for (arr) |x| {
+        sum +%= x;
+    }
+  code2_zig: |
+    const ROW_SIZE = 8192 / @sizeOf(i32);
+    var idx: usize = 0;
+    for (0..arr.len) |_| {
+        sum +%= arr[idx];
+        idx = (idx + ROW_SIZE) % arr.len;
+    }
+- title: Mooore Write
+  topic: Memory
+  code1: |
+    // arr is 1M cache-line-sized (64 byte) elements
+    for (int i = 0; i < N; ++i) {
+      arr[i].data[0] = i;
+    }
+  code2: |
+    // arr is 1M cache-line-sized (64 byte) elements
+    for (int i = 0; i < N; ++i) {
+      memset(&arr[i], i, 64);
+    }
+  answer: 2
+  faster_factor: 1.1
+  machine: AMD Ryzen 9
+  code_url: https://github.com/hgminh95/fast/blob/main/bench/memory/write.cpp
+  explain: |
+    When writing to a cache line that is not already in cache, the CPU normally performs a
+    Read-For-Ownership (RFO): it reads the entire 64-byte cache line from memory first, then
+    modifies the requested bytes. This is necessary because the CPU needs the other bytes in
+    the line to remain intact.
+
+    When writing an entire cache line, the read is unnecessary since every byte will be
+    overwritten. The CPU (via Enhanced REP MOVSB/STOSB, or ERMS) can detect full cache line
+    writes and skip the RFO, saving memory bandwidth. This effectively halves the memory
+    traffic per cache line: from read + writeback to just writeback.
+
+    The effect is modest in this benchmark because memory bandwidth is the bottleneck for both
+    cases. The benefit is larger on workloads where RFO traffic competes with other memory
+    accesses.
+
+    References:
+
+    - [Intel - Enhanced REP MOVSB/STOSB](https://www.intel.com/content/www/us/en/architecture-and-technology/64-ia-32-architectures-optimization-manual.html)
+    - [Travis Downs - Write-Combining](https://travisdowns.github.io/blog/2020/05/13/intel-zero-opt.html)
+  code1_zig: |
+    // arr is 1M cache-line-sized (64 byte) elements
+    for (arr, 0..) |*cl, i| {
+        cl.data[0] = @truncate(i);
+    }
+  code2_zig: |
+    // arr is 1M cache-line-sized (64 byte) elements
+    for (arr, 0..) |*cl, i| {
+        @memset(&cl.data, @truncate(i));
+    }
+- title: Non Temporal Write
+  topic: Memory
+  code1: |
+    // 160MB buffer, well beyond L3 cache
+    __m128i val = _mm_set1_epi64x(42);
+    __m128i* p = (__m128i*)arr;
+    for (size_t i = 0; i < N; ++i) {
+      _mm_stream_si128(p + i, val);
+    }
+    _mm_sfence();
+  code2: |
+    // 160MB buffer, well beyond L3 cache
+    __m128i val = _mm_set1_epi64x(42);
+    __m128i* p = (__m128i*)arr;
+    for (size_t i = 0; i < N; ++i) {
+      _mm_store_si128(p + i, val);
+    }
+  answer: 1
+  faster_factor: 1.17
+  machine: AMD Ryzen 9
+  code_url: https://github.com/hgminh95/fast/blob/main/bench/memory/write.cpp
+  explain: |
+    Normal stores to a cold cache line trigger a Read-For-Ownership (RFO): the CPU reads the
+    entire 64-byte cache line from memory, modifies it, then eventually writes it back. This
+    doubles memory traffic — 128 bytes moved per 64 bytes written.
+
+    Non-temporal (streaming) stores bypass the cache entirely and write directly to memory
+    via write-combining buffers, eliminating the RFO read. In theory this gives 2x bandwidth.
+    In practice, the gain is ~17% on AMD Zen because the memory controller optimizes RFO
+    handling efficiently.
+
+    The benefit is larger on Intel CPUs (~1.5-2x) and when cache pollution from normal writes
+    would evict other useful data. Non-temporal writes are used extensively in `memset`,
+    `memcpy`, and SIMD-heavy workloads like video encoding.
+
+    References:
+
+    - [Intel - Streaming Stores](https://www.intel.com/content/www/us/en/docs/intrinsics-guide/index.html#text=_mm_stream)
+    - [Travis Downs - Non-Temporal Stores](https://travisdowns.github.io/blog/2020/05/13/intel-zero-opt.html)
+  code1_zig: |
+    const val: @Vector(2, i64) = .{ 42, 42 };
+    var i: usize = 0;
+    while (i < arr.len) : (i += 2) {
+      asm volatile ("movntdq %[val], (%[ptr])"
+          : : [val] "x" (val),
+              [ptr] "r" (@as([*]u8, @ptrCast(&arr[i])))
+          : "memory");
+    }
+    asm volatile ("sfence" ::: "memory");
+  code2_zig: |
+    const val: @Vector(2, i64) = .{ 42, 42 };
+    var i: usize = 0;
+    while (i < arr.len) : (i += 2) {
+      @as(*@Vector(2, i64), @alignCast(@ptrCast(&arr[i]))).* = val;
+    }
+- title: Sorted Array
+  topic: CPU
+  code1: |
+    std::vector<int> arr(100'000);
+    # then fill with random value in [0, 256]
+
+    for (auto i = 0u; i < 100'000; ++i) {
+      if (arr[i] >= 128)
+        sum += arr[i];
+    }
+  code2: |
+    std::vector<int> arr(100'000);
+    # then fill with random value in [0, 256]
+
+    # do not benchmark this sort function
+    std::sort(arr.begin(), arr.end())
+
+    for (auto i = 0u; i < 100'000; ++i) {
+      if (arr[i] >= 128)
+        sum += arr[i];
+    }
+  answer: 2
+  faster_factor: 7.5
+  machine: AMD Ryzen 9
+  code_url: https://github.com/hgminh95/fast/blob/main/bench/cpu/sorted_array.cpp
+  explain: |
+    With sorted array, the condition `arr[i] >= 128` become easy to predicted (always false at the beginning, and then
+    become always true). Without sorted array, that is harder to predict.
+
+    CPU can run multiple instructions at the same time, but branch prevents it from happenning. Therefore, CPU try to
+    predict result of the branch and execute instructions based on that prediction to keep the utilization high.
+
+    You can use perf to get the count of branch misprediction
+
+        $ perf stat -e branch-misses,branches bazel-bin/cpu/sorted_array
+
+    References:
+
+      - [Wikipedia - Branch Predictor](https://en.wikipedia.org/wiki/Branch_predictor)
+      - [StackOverflow - Why is processing a sorted array faster than processing an unsorted array?](https://stackoverflow.com/questions/11227809/why-is-processing-a-sorted-array-faster-than-processing-an-unsorted-array)
+  code1_zig: |
+    var arr: [100_000]i32 = // random values in [0, 256]
+
+    for (arr) |x| {
+        if (x >= 128) sum +%= x;
+    }
+  code2_zig: |
+    var arr: [100_000]i32 = // random values in [0, 256]
+
+    std.mem.sort(i32, &arr, {}, std.sort.asc(i32));
+
+    for (arr) |x| {
+        if (x >= 128) sum +%= x;
+    }
+- title: Modulo
+  topic: CPU
+  code1: |
+    std::array<int, 5> modulos{11, 107, 1013, 19211, 81727};
+
+    for (auto i = 0u; i < arr.size(); ++i) {
+      sum += arr[i] % modulos[i * 5 / arr.size()];
+    }
+  code2: |
+    for (auto i = 0u; i < arr.size(); ++i) {
+      switch (i * 5 / arr.size()) {
+        case 0:
+          sum += arr[i] % 11;
+          break;
+        case 1:
+          sum += arr[i] % 107;
+          break;
+        case 2:
+          sum += arr[i] % 1013;
+          break;
+        case 3:
+          sum += arr[i] % 19211;
+          break;
+        case 4:
+          sum += arr[i] % 81727;
+          break;
       }
-    code2: |
-      struct Elem {
-        int32_t part1{0};
-        int32_t part2{0};
-      
-        void Store(int32_t x) {
-          *reinterpret_cast<int64_t*>(this) = x;
+    }
+  answer: 2
+  faster_factor: 1.8
+  machine: AMD Ryzen 9
+  code_url: https://github.com/hgminh95/fast/blob/main/bench/cpu/modulo.cpp
+  explain: |
+    Integer modulo (and division) operation in CPU is slow. But there is a trick to convert
+    [division by a constant into multiplication](https://en.wikipedia.org/wiki/Division_algorithm#Division_by_a_constant).
+
+    Beware of the branching penalty though. The above example works because the branch is easily predicted.
+
+    In case where you don't know the divisor in compile time, but you know same value is gonna be used multiple times,
+    you can use something like [libdivide](https://libdivide.com/)
+
+    References:
+
+    - [Wikipedia - Division Algorithm](https://en.wikipedia.org/wiki/Division_algorithm)
+  code1_zig: |
+    const modulos = [_]i32{ 11, 107, 1013, 19211, 81727 };
+
+    for (arr, 0..) |x, i| {
+        sum +%= @rem(x, modulos[i * 5 / arr.len]);
+    }
+  code2_zig: |
+    for (arr, 0..) |x, i| {
+        sum +%= switch (i * 5 / arr.len) {
+            0 => @rem(x, 11),
+            1 => @rem(x, 107),
+            2 => @rem(x, 1013),
+            3 => @rem(x, 19211),
+            4 => @rem(x, 81727),
+            else => 0,
+        };
+    }
+- title: Power Of Two
+  topic: CPU
+  code1: "int foo(int x) {\n  return x % 3; \n}\n"
+  code2: "int foo(int x) {\n  return x % 128; \n}\n"
+  answer: 2
+  faster_factor: 1.57
+  machine: AMD Ryzen 9
+  code_url: https://github.com/hgminh95/fast/blob/main/bench/cpu/power_of_two.cpp
+  explain: |
+    Arithmetic operation with power of two can usually be converted into bit shift, or mask
+    operation, which is quite cheap
+
+    - x * 2^n == x << n
+    - x % 2^n == x & (1 << n - 1)
+
+    You can verify this by looking at the generated assembly. `x % 128` compiles to a single `and` instruction,
+    while `x % 3` requires a multiply-and-shift sequence.
+  code1_zig: |
+    fn foo(x: i32) i32 {
+        return @rem(x, 3);
+    }
+  code2_zig: |
+    fn foo(x: i32) i32 {
+        return @rem(x, 128);
+    }
+- title: Dependency
+  topic: CPU
+  code1: |
+    for (auto i = 0u; i < 90; ++i) {
+      sum *= 10;
+      sum += a[i];
+    }
+  code2: |
+    for (auto i = 0u; i < 90; i += 3) {
+      sum *= 1000;
+      sum += a[i] * 100;
+      sum += a[i + 1] * 10;
+      sum += a[i + 2];
+    }
+  answer: 2
+  faster_factor: 1.29
+  machine: AMD Ryzen 9
+  code_url: https://github.com/hgminh95/fast/blob/main/bench/cpu/dependency.cpp
+  explain: |
+    The first code has to be run sequentially pretty much, since the add operation
+    must be done after * 10 operation. While in the 2nd code, there are 3 add
+    operation that can be done in any order, thus enable more parallelism in CPU.
+
+    References:
+
+    - [Wikipedia - Superscalar Processor](https://en.wikipedia.org/wiki/Superscalar_processor)
+    - [Intel 64 and IA-32 Architectures Optimization Reference Manual](https://www.intel.com/content/www/us/en/developer/articles/technical/intel-sdm.html)
+  code1_zig: |
+    for (0..90) |i| {
+        sum *%= 10;
+        sum +%= a[i];
+    }
+  code2_zig: |
+    var i: usize = 0;
+    while (i < 90) : (i += 3) {
+        sum *%= 1000;
+        sum +%= a[i] *% 100;
+        sum +%= a[i + 1] *% 10;
+        sum +%= a[i + 2];
+    }
+- title: False Dependency
+  topic: CPU
+  code1: |
+    int sum = 0;
+    for (auto i = 0u; i < arr.size(); ++i) {
+      sum += __builtin_popcount(arr[i]);
+    }
+  code2: |
+    int r0 = 0, r1 = 0, r2 = 0, r3 = 0;
+    for (auto i = 0u; i < arr.size(); i += 4) {
+      r0 += __builtin_popcount(arr[i]);
+      r1 += __builtin_popcount(arr[i + 1]);
+      r2 += __builtin_popcount(arr[i + 2]);
+      r3 += __builtin_popcount(arr[i + 3]);
+    }
+    sum = r0 + r1 + r2 + r3;
+  answer: 2
+  faster_factor: 1.17
+  machine: AMD Ryzen 9
+  code_url: https://github.com/hgminh95/fast/blob/main/bench/cpu/false_dependency.cpp
+  explain: |
+    On some older x86 CPUs (Sandy Bridge through Haswell), the `popcnt` instruction has a
+    false output dependency: the CPU tracks a dependency on the destination register even
+    though the instruction doesn't actually read it. This serializes consecutive `popcnt`
+    instructions that use the same accumulator.
+
+    Using multiple independent accumulators breaks this dependency chain, allowing the CPU
+    to execute multiple `popcnt` instructions in parallel. On newer CPUs (Skylake+, Zen),
+    this false dependency has been fixed, so the speedup may be smaller.
+
+    References:
+
+    - [Stack Overflow - POPCNT False Dependency](https://stackoverflow.com/questions/25078285/popcnt-on-intel-cpus-gives-unexpected-results)
+    - [Agner Fog - Instruction Tables](https://www.agner.org/optimize/instruction_tables.pdf)
+  code1_zig: |
+    var sum: i32 = 0;
+    for (arr) |x| {
+        sum +%= @intCast(@popCount(@as(u32, @bitCast(x))));
+    }
+  code2_zig: |
+    var r0: i32 = 0;
+    var r1: i32 = 0;
+    var r2: i32 = 0;
+    var r3: i32 = 0;
+    var i: usize = 0;
+    while (i < arr.len) : (i += 4) {
+        r0 +%= @intCast(@popCount(@as(u32, @bitCast(arr[i]))));
+        r1 +%= @intCast(@popCount(@as(u32, @bitCast(arr[i+1]))));
+        r2 +%= @intCast(@popCount(@as(u32, @bitCast(arr[i+2]))));
+        r3 +%= @intCast(@popCount(@as(u32, @bitCast(arr[i+3]))));
+    }
+    sum = r0 +% r1 +% r2 +% r3;
+- title: No Branch
+  topic: CPU
+  code1: |
+    for (auto i = 0u; i < arr.size(); ++i) {
+      if (arr[i] > 128)
+        sum += arr[i];
+    }
+  code2: |
+    for (auto i = 0u; i < arr.size(); ++i) {
+      sum += arr[i] * (arr[i] > 128);
+    }
+  answer: 2
+  faster_factor: 7.5
+  machine: AMD Ryzen 9
+  code_url: https://github.com/hgminh95/fast/blob/main/bench/cpu/sorted_array.cpp
+  explain: |
+    Eventhough there are a lot more instructions in the 2nd example, eliminating
+    branch make it faster due to higher of parallelism achieved on the CPU.
+
+    Part of a reason that compiler does not optimize the first example is because
+    it is not obvious the branchless edition is faster. As you see in `Sorted Array`,
+    branch one, with a clean pattern, will outperform the branchless one, due to extra
+    computation it needs.
+
+    References:
+
+    - [Algorithmica - Branchless Programming](https://en.algorithmica.org/hpc/pipelining/branchless/)
+  code1_zig: |
+    for (arr) |x| {
+        if (x > 128) sum +%= x;
+    }
+  code2_zig: |
+    for (arr) |x| {
+        sum +%= x * @as(i32, @intFromBool(x > 128));
+    }
+- title: No Branch 2
+  topic: CPU
+  code1: |
+    for (auto i = 0u; i < arr.size(); ++i) {
+      if (arr[i] > 128)
+        sum += arr[i];
+    }
+  code2: |
+    int sum[2] = {0, 0};
+    for (auto i = 0u; i < arr.size(); ++i) {
+      sum[arr[i] > 128] += arr[i];
+    }
+    // The answer is in sum[true]
+  answer: 2
+  faster_factor: 4
+  machine: AMD Ryzen 9
+  code_url: https://github.com/hgminh95/fast/blob/main/bench/cpu/sorted_array.cpp
+  explain: |
+    Similar to [No Branch](/q/no_branch.html). This approach uses array indexing to avoid a branch:
+    the result is stored at `sum[true]` or `sum[false]` based on the condition.
+
+    On some CPUs and compilers, this approach is slower than the branch version because the
+    array indexing `sum[arr[i] > 128]` creates a data dependency: the CPU must compute the
+    comparison before it can determine the memory address to update. With a well-predicted
+    branch (or a cmov), the CPU can speculatively execute ahead.
+
+        $ perf stat -e branch-misses,branches bazel-bin/cpu/sorted_array --benchmark_filter=BM_UnsortedArrayNoBranch2
+
+    References:
+
+    - [Algorithmica - Branchless Programming](https://en.algorithmica.org/hpc/pipelining/branchless/)
+  code1_zig: |
+    for (arr) |x| {
+        if (x > 128) sum +%= x;
+    }
+  code2_zig: |
+    var sums = [2]i32{ 0, 0 };
+    for (arr) |x| {
+        sums[@intFromBool(x > 128)] +%= x;
+    }
+    // The answer is in sums[1]
+- title: Well Predicted
+  topic: CPU
+  code1: |
+    // The array is sorted beforehand
+    for (auto i = 0u; i < arr.size(); ++i) {
+      if (arr[i] > 128)
+        sum += arr[i];
+    }
+  code2: |
+    int sum[2] = {0, 0};
+    for (auto i = 0u; i < arr.size(); ++i) {
+      sum[arr[i] > 128] += arr[i];
+    }
+    // The answer is in sum[true]
+  answer: 1
+  faster_factor: 1.88
+  machine: AMD Ryzen 9
+  code_url: https://github.com/hgminh95/fast/blob/main/bench/cpu/sorted_array.cpp
+  explain: |
+    Branch is not neccessarily a bad thing all the time. When the branch is well-predicted (as with sorted data),
+    it allows the CPU to skip unnecessary work entirely. The branchless version always computes the index and
+    does the conditional store, which is more work per iteration.
+
+        $ perf stat -e branch-misses,branches bazel-bin/cpu/sorted_array --benchmark_filter=BM_SortedArray
+
+    References:
+
+    - [Wikipedia - Branch Predictor](https://en.wikipedia.org/wiki/Branch_predictor)
+  code1_zig: |
+    // The array is sorted beforehand
+    for (arr) |x| {
+        if (x > 128) sum +%= x;
+    }
+  code2_zig: |
+    var sums = [2]i32{ 0, 0 };
+    for (arr) |x| {
+        sums[@intFromBool(x > 128)] +%= x;
+    }
+    // The answer is in sums[1]
+- title: Register Spill
+  topic: CPU
+  code1: |
+    // arr.size == 1'000'000
+    constexpr int N = 4;
+
+    for (auto i = 0u; i < arr.size(); i += N) {
+      for (int j = 0; j < N; ++j) {
+        sum += arr[i + j] * (i + j);
+      }
+    }
+  code2: |
+    // arr.size == 1'000'000
+    constexpr int N = 8;
+
+    for (auto i = 0u; i < arr.size(); i += N) {
+      for (int j = 0; j < N; ++j) {
+        sum += arr[i + j] * (i + j);
+      }
+    }
+  answer: 2
+  faster_factor: 1.44
+  machine: AMD Ryzen 9
+  code_url: https://github.com/hgminh95/fast/blob/main/bench/cpu/register.cpp
+  explain: |
+    Unrolling a loop with more iterations per step gives the CPU more independent operations
+    to execute in parallel (instruction-level parallelism). With N=8, there are 8 multiply-add
+    operations that can be pipelined, keeping more execution units busy.
+
+    However, if the unroll factor is too large, the compiler needs more registers to hold
+    intermediate values. When it runs out (x86-64 has ~16 general-purpose registers), values
+    "spill" to the stack, adding memory operations. The optimal unroll factor depends on
+    the computation complexity and the number of available registers.
+
+    Note: with vectorization enabled, the compiler may auto-vectorize and the optimal N
+    changes. This benchmark disables vectorization to isolate the scalar register pressure effect.
+
+    References:
+
+    - [Wikipedia - Register Allocation](https://en.wikipedia.org/wiki/Register_allocation)
+    - [Wikipedia - Loop Unrolling](https://en.wikipedia.org/wiki/Loop_unrolling)
+  code1_zig: |
+    // arr.len == 1'000'000
+    const N = 4;
+
+    var i: usize = 0;
+    while (i < arr.len) : (i += N) {
+        inline for (0..N) |j| {
+            sum +%= arr[i + j] *% @intCast(i + j);
         }
-      
-        int64_t Load() {
-          return *reinterpret_cast<int64_t*>(this);
+    }
+  code2_zig: |
+    // arr.len == 1'000'000
+    const N = 8;
+
+    var i: usize = 0;
+    while (i < arr.len) : (i += N) {
+        inline for (0..N) |j| {
+            sum +%= arr[i + j] *% @intCast(i + j);
         }
-      };
+    }
+- title: Jump
+  topic: CPU
+  code1: |
+    for (auto i = 0u; i < 100'000; ++i) {
+      asm("nop");
+      asm("nop");
+      asm("nop");
+      ...
+      // 15 times
+    }
+  code2: |
+    for (auto i = 0u; i < 100'000; ++i) {
+      asm("nop");
+      asm("nop");
+      asm("nop");
+      ...
+      // 14 times
+    }
+  answer: 1
+  faster_factor: 1.16
+  machine: AMD Ryzen 9
+  code_url: https://github.com/hgminh95/fast/blob/main/bench/cpu/jump.cpp
+  explain: |
+    When a loop's branch instruction crosses a 32-byte aligned boundary, the instruction fetch
+    can be significantly slower due to how the frontend decodes instructions. With 15 NOPs, the
+    loop body is larger and the backward jump crosses an alignment boundary, causing extra cycles.
 
-      volatile uint16_t x;
+    Usually not a concern in practice, as the compiler handles alignment. Note that this benchmark
+    can be unstable since instruction addresses may change between builds.
 
-      for (auto &elem : arr) {
-        elem.Store(x);
-        std::atomic_thread_fence(std::memory_order_seq_cst);
-        sum += elem.Load();
-      }
-    answer: 2
-    faster_factor: 2.4
-    machine: AMD Ryzen 9
-    code_url: https://github.com/hgminh95/fast/blob/main/bench/cpu/store_forwarding.cpp
-    explain: |
-      TODO: The benchmark is not realistic
+    References:
 
-      Even L1 cache is slow sometimes. For example, if you write to a memory address and then load it again later, if the data is in store buffer inside CPU, we don't need to wait for them to commit to L1 or load from L1 again. This optimization in CPU is call store-to-load forwarding. There are certain restriction on when it can be performed, as it need to be done very fast, please check references for more details.
-
-      You can use `perf` to measure this.
-
-          $ perf list
-          ls_stlf
-            [Store-to-load-forward (STLF) hits]
-
-          $ 'bazel-bin/cpu/store_forwarding --benchmark_filter=BM_StoreForwarding<Foo1> --benchmark_min_time=100x':
-          410,195,410      L1-dcache-loads                                                       
-          100,300,709      ls_stlf
-
-          $ 'bazel-bin/cpu/store_forwarding --benchmark_filter=BM_StoreForwarding<Foo2> --benchmark_min_time=100x':
-          209,280,067      L1-dcache-loads                                                       
-          200,245,122      ls_stlf
-
-      Note that above benchmark works because:
-
-      - It rely on a fact the compiler cannot optimize the `Store` function to store 64 bytes directly.
-      - We add a memory fence to prevent compiler from reordering the write before read. Removing that, the 2nd code is still faster, but because of different reason.
-
-      References:
-      
-      - [easyperf - Store forwarding by example](https://easyperf.net/blog/2018/03/09/Store-forwarding)
-  - title: Async
-    topic: CPU
-    wip: true
-    code1: |
-      #include
-    code2: |
-      #include
-    answer: 2
-    faster_factor: 2
-    machine: Apple Macbook Air M2
-    code_url: https://github.com/hgminh95/fast/blob/main/bench/cpu/sorted_array.cpp
-    explain: |
-      TODO
-
-
-  - title: Inline vs Function Call
-    topic: C++
-    code1: |
-      __attribute__(always_inline) int foo(int x, int y) {
-        return x + y;
-      }
-    code2: |
-      __attribute__(noinline) int foo(int x, int y) {
-        return x + y;
-      }
-    answer: 1
-    faster_factor: "4.7"
-    machine: AMD Ryzen 9
-    code_url: https://github.com/hgminh95/fast/blob/main/bench/cpp/function_call.cpp
-    explain: |
-      [Inlining function](https://en.wikipedia.org/wiki/Inline_expansion) could be faster because it:
-
-      - Eliminate the cost of calling function. The cost will making some changes to some register, pushing thing to stack, and then a jump on the code.
-      - Enable more optimization on the caller since the compiler has more info on how a function works. Depending on the cases, this would be the larger benefit.
-
-      The drawback, however, is larger code size, and that could lead to more icache miss.
-
-      For a function to be inlined in C++, it needs to be defined on the header, or link time optimization is enabled.
-
-      Compiler on average can decide on which function, or where a function should be inlined better than human, especially with profile guided optimization. However, there are cases that you might want to use these attribute manually, e.g. if you know for sure a function is always in a critical path, and it will not lead to code bloat; or if the path that you want to optimize for is not hot (executed less frequently compared to other paths).
-
-      Beside these attributes, there are others inline-related one that could be helpful: flatten
-
-      Note that you might see different results on Clang, due to how these attributes are interpreted.
-
-      References:
-
-      - [GCC - GCC Common Function Attribute](https://gcc.gnu.org/onlinedocs/gcc/Common-Function-Attributes.html)
-      - [StackOverflow - clang ignoring attribute noinline](https://stackoverflow.com/questions/54481855/clang-ignoring-attribute-noinline)
-      - [GCC - GCC Link Time Optimization](https://gcc.gnu.org/wiki/LinkTimeOptimization)
-      - [LLVM - LLVM Link Time Optimization](https://llvm.org/docs/LinkTimeOptimization.html)
-      - [Wikipedia - Profile-Guided Optimization](https://en.wikipedia.org/wiki/Profile-guided_optimization)
-
-  - title: Function Call vs Virtual Function Call
-    topic: C++
-    wip: true
-    code1: |
-      #include
-    code2: |
-      #include
-    answer: 2
-    faster_factor: "?"
-    machine: Apple Macbook Air M2
-    code_url: https://github.com/hgminh95/fast/blob/main/bench/cpp/function_call.cpp
-    explain: |
-      TODO
-
-  - title: Different Type of Static Variable
-    topic: C++
-    code1: |
-      struct Foo {
-        int Add(int x) {
-          static int a = rand() % 5;
-          return a += x;
+    - [Intel Optimization Manual - Code Alignment](https://www.intel.com/content/www/us/en/developer/articles/technical/intel-sdm.html)
+    - [Agner Fog - Microarchitecture](https://www.agner.org/optimize/microarchitecture.pdf)
+  code1_zig: |
+    for (0..100_000) |_| {
+        comptime var i = 0;
+        inline while (i < 15) : (i += 1) {
+            asm volatile ("nop");
         }
-      };
-    code2: |
-      struct Foo {
-        static inline int a = rand() % 5;
-
-        int Add(int x) {
-          return a += x;
+    }
+  code2_zig: |
+    for (0..100_000) |_| {
+        comptime var i = 0;
+        inline while (i < 14) : (i += 1) {
+            asm volatile ("nop");
         }
-      };
-    answer: 2
-    faster_factor: "1.05"
-    machine: AMD Ryzen 9
-    code_url: https://github.com/hgminh95/fast/blob/main/bench/cpu/static_variable.cpp
-    explain: |
-      Static member variable will be initialized when the application start. Static local variable, however,
-      will be initialized first time when it is called. That mean having an extra check in runtime to figure
-      out whether the variable is initialized or not.
+    }
+- title: Pointer Chasing
+  topic: CPU
+  code1: |
+    Node* p = head;
+    while (p) {
+      sum += p->value;
+      p = p->next;
+    }
+  code2: |
+    for (auto i = 0u; i < arr.size(); ++i) {
+      sum += arr[i];
+    }
+  answer: 2
+  faster_factor: 293
+  machine: AMD Ryzen 9
+  code_url: https://github.com/hgminh95/fast/blob/main/bench/cpu/pointer_chasing.cpp
+  explain: |
+    Pointer chasing is the worst case for modern CPUs. Each node's address depends on reading
+    the previous node's `next` pointer, creating a strict serial dependency chain. The CPU
+    cannot prefetch ahead because it doesn't know where the next node is until the current
+    load completes.
 
-      TODO: show asm code
+    With randomly shuffled nodes, each dereference likely causes a cache miss (~100ns on
+    modern hardware), and these misses cannot be overlapped. Array traversal, on the other
+    hand, is perfectly sequential and predictable, allowing the hardware prefetcher to stay
+    far ahead and hiding all memory latency.
 
-      References:
+    This is why cache-friendly data structures (arrays, vectors) dramatically outperform
+    pointer-heavy structures (linked lists, trees) for traversal.
 
-      - TODO
+    References:
 
-  - title: Signed vs Unsigned
-    topic: C++
-    code1: |
-      // arr is an array of uint64_t
-      int sum = 0;
-      for (auto elem : arr) {
-        sum += elem / 1234;
-      }
-    code2: |
-      // arr is an array of int64_t
-      int sum = 0;
-      for (auto elem : arr) {
-        sum += elem / 1234;
-      }
-    answer: 1
-    faster_factor: "1.2"
-    machine: AMD Ryzen 9
-    code_url: https://github.com/hgminh95/fast/blob/main/bench/cpu/signed.cpp
-    explain: |
-      There are certain optimization that can only optimized for [unsigned integer divison](https://ridiculousfish.com/blog/posts/labor-of-division-episode-iii.html); making it faster in this case.
+    - [Wikipedia - Pointer Chasing](https://en.wikipedia.org/wiki/Pointer_chasing)
+    - [Algorithmica - Memory-Level Parallelism](https://en.algorithmica.org/hpc/cpu-cache/mlp/)
+  code1_zig: |
+    var p: ?*Node = head;
+    while (p) |node| {
+        sum +%= node.value;
+        p = node.next;
+    }
+  code2_zig: |
+    for (arr) |x| {
+        sum +%= x;
+    }
+- title: Store-To-Load Forwarding
+  topic: CPU
+  code1: |
+    struct Elem {
+      int32_t part1{0};
+      int32_t part2{0};
 
-      References:
-
-      - TODO
-
-  - title: Restrict
-    topic: C++
-    code1: |
-      void Add2Elems(int * __restrict a, int * __restrict b, int x) {
-        for (int i = 0; i < 50; ++i) {
-          a[i] += x;
-          b[i] += x;
-        }
-      }
-    code2: |
-      void Add2Elems(int *a, int *b, int x) {
-        for (int i = 0; i < 50; ++i) {
-          a[i] += x;
-          b[i] += x;
-        }
-      }
-    answer: 1
-    faster_factor: "1.9"
-    machine: AMD Ryzen 9
-    code_url: https://github.com/hgminh95/fast/blob/main/bench/cpu/alias.cpp
-    explain: |
-      `restrict` keyword let the compiler know these 2 pointers will not point to the same address. That allows compiler to assume independence between operations of `a` and `b`, leading to more optimized version.
-
-      TODO: show asm code
-
-      References:
-
-      - [Wikipedia - Restrict](https://en.wikipedia.org/wiki/Restrict)
-  - title: Shared Pointer
-    topic: C++
-    wip: true
-    code1: |
-      struct Foo {
-    code2: |
-      struct Foo {
-    answer: 2
-    faster_factor: "?"
-    machine: Apple Macbook Air M2
-    code_url: https://github.com/hgminh95/fast/blob/main/bench/cpu/static_variable.cpp
-    explain: |
-      TODO
-
-  - title: Small
-    topic: C++
-    code1: |
-      for (int j = 0; j < 23; ++j) {
-        std::string s;
-        for (auto i = 0u; i < 22; ++i)
-          s += 'a';
-      }
-    code2: |
-      for (int j = 0; j < 22; ++j) {
-        std::string s;
-        for (auto i = 0u; i < 23; ++i)
-          s += 'a';
-      }
-    answer: 1
-    faster_factor: 2
-    machine: Apple Macbook Air M2
-    code_url: https://github.com/hgminh95/fast/blob/main/bench/cpp/string.cpp
-    explain: |
-      Small String Optimization (SSO) is a way to avoid heap allocation by reusing the
-      space for metadata (e.g. pointer, capacity, size) in case the length of the
-      string is small.
-
-      For Clang, the small string size is capped at 22 bytes (at the time of writing)
-
-      TODO: show malloc counter
-
-      References:
-
-      - [The Old New Thing - An informal comparison of the three major implementations of std::string](https://devblogs.microsoft.com/oldnewthing/20240510-00/?p=109742)
-  - title: Chaining Function
-    topic: C++
-    code1: |
-      struct Context {
-        // complex class
-      };
-      
-      void Step1(Context &ctx) {
-        // complex function
-      }
-      
-      void Step2(Context &ctx) {
-        // complex function
+      void Store(int32_t x) {
+        part1 = 0;
+        part2 = x;
       }
 
-      for (auto &context : contexts) {
-        Step1(context);
-        Step2(context);
-        Step1(context);
-        Step2(context);
+      int64_t Load() {
+        return *reinterpret_cast<int64_t*>(this);
       }
-    code2: |
-      for (auto &context : contexts) {
-        Step1(context);
-      }
-      for (auto &context : contexts) {
-        Step2(context);
-      }
-      for (auto &context : contexts) {
-        Step1(context);
-      }
-      for (auto &context : contexts) {
-        Step2(context);
-      }
-    answer: 2
-    faster_factor: "1.39"
-    machine: AMD Ryzen 9
-    code_url: https://github.com/hgminh95/fast/blob/main/bench/cpu/function_chain.cpp
-    explain: |
-      TODO: Code is too long
+    };
 
-      There are various factors that affect the performance of this:
+    volatile uint16_t x;
 
-      - icache miss: the 2nd variant will have less icache missed, since we execute a smaller code at a time
-      - dcache miss: depending on the Context struct, and these Step1, Step2 function; doing them all in 1 pass could save on the time to load the context member variable or related variables in Step1, Step2 functions
-      - optimization across functions: in the first variant, multiple functions are called at one. There could be optimization that make the speed of 4 functions faster than running each 1 individually.
-      - vectorization: in the 2nd variant, it is easier to vectorize each functions
+    for (auto &elem : arr) {
+      elem.Store(x);
+      std::atomic_thread_fence(std::memory_order_seq_cst);
+      sum += elem.Load();
+    }
+  code2: |
+    struct Elem {
+      int32_t part1{0};
+      int32_t part2{0};
 
-      References:
+      void Store(int32_t x) {
+        *reinterpret_cast<int64_t*>(this) = x;
+      }
 
-      - TODO
+      int64_t Load() {
+        return *reinterpret_cast<int64_t*>(this);
+      }
+    };
 
-  - title: ABI
-    topic: C++
-    wip: true
-    code1: |
-      struct Foo {
-    code2: |
-      struct Foo {
-    answer: 2
-    faster_factor: "?"
-    machine: Apple Macbook Air M2
-    code_url: https://github.com/hgminh95/fast/blob/main/bench/cpu/static_variable.cpp
-    explain: |
-      TODO
+    volatile uint16_t x;
 
-  - title: Batch Processing
-    topic: C++
-    wip: true
-    code1: |
-      struct Foo {
-    code2: |
-      struct Foo {
-    answer: 2
-    faster_factor: "?"
-    machine: Apple Macbook Air M2
-    code_url: https://github.com/hgminh95/fast/blob/main/bench/cpu/static_variable.cpp
-    explain: |
-      TODO
+    for (auto &elem : arr) {
+      elem.Store(x);
+      std::atomic_thread_fence(std::memory_order_seq_cst);
+      sum += elem.Load();
+    }
+  answer: 2
+  faster_factor: 2.4
+  machine: AMD Ryzen 9
+  code_url: https://github.com/hgminh95/fast/blob/main/bench/cpu/store_forwarding.cpp
+  explain: "Even L1 cache is slow sometimes. For example, if you write to a memory\
+    \ address and then load it again later, if the data is in store buffer inside\
+    \ CPU, we don't need to wait for them to commit to L1 or load from L1 again. This\
+    \ optimization in CPU is call store-to-load forwarding. There are certain restriction\
+    \ on when it can be performed, as it need to be done very fast, please check references\
+    \ for more details.\n\nYou can use `perf` to measure this.\n\n    $ perf list\n\
+    \    ls_stlf\n      [Store-to-load-forward (STLF) hits]\n\n    $ 'bazel-bin/cpu/store_forwarding\
+    \ --benchmark_filter=BM_StoreForwarding<Foo1> --benchmark_min_time=100x':\n  \
+    \  410,195,410      L1-dcache-loads                                          \
+    \             \n    100,300,709      ls_stlf\n\n    $ 'bazel-bin/cpu/store_forwarding\
+    \ --benchmark_filter=BM_StoreForwarding<Foo2> --benchmark_min_time=100x':\n  \
+    \  209,280,067      L1-dcache-loads                                          \
+    \             \n    200,245,122      ls_stlf\n\nNote that above benchmark works\
+    \ because:\n\n- It rely on a fact the compiler cannot optimize the `Store` function\
+    \ to store 64 bytes directly.\n- We add a memory fence to prevent compiler from\
+    \ reordering the write before read. Removing that, the 2nd code is still faster,\
+    \ but because of different reason.\n\nReferences:\n\n- [easyperf - Store forwarding\
+    \ by example](https://easyperf.net/blog/2018/03/09/Store-forwarding)\n"
+  code1_zig: |
+    const Elem = extern struct {
+        part1: i32 = 0,
+        part2: i32 = 0,
+    };
 
-  - title: pow
-    topic: C++
-    wip: true
-    code1: |
-      std::pow(3);
-    code2: |
-      std::pow(4);
-    answer: 2
-    faster_factor: "?"
-    machine: Apple Macbook Air M2
-    code_url: https://github.com/hgminh95/fast/blob/main/bench/cpp/math.cpp
-    explain: |
-      References:
+    for (arr) |*elem| {
+        elem.part1 = 0;
+        elem.part2 = x;
+        compilerFence();
+        sum +%= @as(*align(1) const i64, @ptrCast(elem)).*;
+    }
+  code2_zig: |
+    const Elem = extern struct {
+        part1: i32 = 0,
+        part2: i32 = 0,
+    };
 
-      - [slowpow](https://entropymine.com/imageworsener/slowpow/) I think it is fixed?
+    for (arr) |*elem| {
+        @as(*align(1) i64, @ptrCast(elem)).* = x;
+        compilerFence();
+        sum +%= @as(*align(1) const i64, @ptrCast(elem)).*;
+    }
+- title: Async
+  topic: CPU
+  code1: |
+    int p = start;
+    for (int i = 0; i < N; ++i) {
+      p = arr[p];
+      sum += p;
+    }
+  code2: |
+    int p1 = start1, p2 = start2;
+    for (int i = 0; i < N; ++i) {
+      p1 = arr1[p1];
+      p2 = arr2[p2];
+      sum += p1 + p2;
+    }
+  answer: 2
+  faster_factor: 1.3
+  machine: AMD Ryzen 9
+  code_url: https://github.com/hgminh95/fast/blob/main/bench/cpu/async.cpp
+  explain: |
+    Modern CPUs can have multiple outstanding memory requests in flight simultaneously. This is
+    called Memory-Level Parallelism (MLP). A single pointer chase chain can only have one
+    outstanding cache miss at a time (since each load depends on the previous one).
 
-  - title: Loop Reordering
-    topic: C++
-    wip: true
-    code1: |
-      struct Foo {
-    code2: |
-      struct Foo {
-    answer: 2
-    faster_factor: "?"
-    machine: Apple Macbook Air M2
-    code_url: https://github.com/hgminh95/fast/blob/main/bench/cpu/static_variable.cpp
-    explain: |
-      TODO
+    With two independent chains, the CPU can issue loads from both chains simultaneously,
+    overlapping the latency. In theory, two chains should take the same wall time as one chain,
+    effectively doubling throughput. In practice, the benefit depends on the number of Line Fill
+    Buffers (LFBs) available and cache interference between the chains.
 
-  - title: Moving Data
-    topic: GPU
-    wip: true
-    code1: |
-      #include cpp
-      int main() {
-      }
-    code2: |
-      #include cpp
-      int main() {
-      }
-    answer: 1
-    faster_factor: 2
-    explain: |
-      TODO
-  - title: Coalesced Access
-    topic: GPU
-    wip: true
-    code1: |
-      #include cpp
-      int main() {
-      }
-    code2: |
-      #include cpp
-      int main() {
-      }
-    answer: 1
-    faster_factor: 2
-    explain: |
-      TODO
-  - title: Misaligned Access
-    topic: GPU
-    wip: true
-    code1: |
-      #include cpp
-      int main() {
-      }
-    code2: |
-      #include cpp
-      int main() {
-      }
-    answer: 1
-    faster_factor: 2
-    explain: |
-      TODO
-  - title: The Swizzle Operator
-    topic: GPU
-    wip: true
-    code1: |
-      #include cpp
-      int main() {
-      }
-    code2: |
-      #include cpp
-      int main() {
-      }
-    answer: 1
-    faster_factor: 2
-    explain: |
-      TODO
-  - title: Kernel Fusion
-    topic: GPU
-    wip: true
-    code1: |
-      #include cpp
-      int main() {
-      }
-    code2: |
-      #include cpp
-      int main() {
-      }
-    answer: 1
-    faster_factor: 2
-    explain: |
-      TODO
-  - title: Kernel Fission
-    topic: GPU
-    wip: true
-    code1: |
-      #include cpp
-      int main() {
-      }
-    code2: |
-      #include cpp
-      int main() {
-      }
-    answer: 1
-    faster_factor: 2
-    explain: |
-      TODO
+    References:
 
-  - title: Pipelining
-    topic: RTL
-    wip: true
-    code1: |
-      #include cpp
-      int main() {
+    - [Algorithmica - Memory-Level Parallelism](https://en.algorithmica.org/hpc/cpu-cache/mlp/)
+    - [Wikipedia - Memory-Level Parallelism](https://en.wikipedia.org/wiki/Memory-level_parallelism)
+  code1_zig: |
+    var p: usize = start;
+    for (0..N) |_| {
+        p = @intCast(@as(u32, @bitCast(arr[p])));
+        sum +%= @intCast(p);
+    }
+  code2_zig: |
+    var p1: usize = start1;
+    var p2: usize = start2;
+    for (0..N) |_| {
+        p1 = @intCast(@as(u32, @bitCast(arr1[p1])));
+        p2 = @intCast(@as(u32, @bitCast(arr2[p2])));
+        sum +%= @as(i32, @intCast(p1)) +% @as(i32, @intCast(p2));
+    }
+- title: Inline vs Function Call
+  topic: C++
+  code1: |
+    __attribute__(always_inline) int foo(int x, int y) {
+      return x + y;
+    }
+  code2: |
+    __attribute__(noinline) int foo(int x, int y) {
+      return x + y;
+    }
+  answer: 1
+  faster_factor: '4.7'
+  machine: AMD Ryzen 9
+  code_url: https://github.com/hgminh95/fast/blob/main/bench/cpp/function_call.cpp
+  explain: |
+    [Inlining function](https://en.wikipedia.org/wiki/Inline_expansion) could be faster because it:
+
+    - Eliminate the cost of calling function. The cost will making some changes to some register, pushing thing to stack, and then a jump on the code.
+    - Enable more optimization on the caller since the compiler has more info on how a function works. Depending on the cases, this would be the larger benefit.
+
+    The drawback, however, is larger code size, and that could lead to more icache miss.
+
+    For a function to be inlined in C++, it needs to be defined on the header, or link time optimization is enabled.
+
+    Compiler on average can decide on which function, or where a function should be inlined better than human, especially with profile guided optimization. However, there are cases that you might want to use these attribute manually, e.g. if you know for sure a function is always in a critical path, and it will not lead to code bloat; or if the path that you want to optimize for is not hot (executed less frequently compared to other paths).
+
+    Beside these attributes, there are others inline-related one that could be helpful: flatten
+
+    Note that you might see different results on Clang, due to how these attributes are interpreted.
+
+    References:
+
+    - [GCC - GCC Common Function Attribute](https://gcc.gnu.org/onlinedocs/gcc/Common-Function-Attributes.html)
+    - [StackOverflow - clang ignoring attribute noinline](https://stackoverflow.com/questions/54481855/clang-ignoring-attribute-noinline)
+    - [GCC - GCC Link Time Optimization](https://gcc.gnu.org/wiki/LinkTimeOptimization)
+    - [LLVM - LLVM Link Time Optimization](https://llvm.org/docs/LinkTimeOptimization.html)
+    - [Wikipedia - Profile-Guided Optimization](https://en.wikipedia.org/wiki/Profile-guided_optimization)
+- title: Function Call vs Virtual Function Call
+  topic: C++
+  code1: |
+    __attribute__((noinline)) int Add(int a, int b) {
+      return a + b;
+    }
+  code2: |
+    struct Base {
+      virtual int Add(int a, int b) = 0;
+    };
+    struct Adder : public Base {
+      int Add(int a, int b) override {
+        return a + b;
       }
-    code2: |
-      #include cpp
-      int main() {
+    };
+  answer: 1
+  faster_factor: '1'
+  machine: AMD Ryzen 9
+  code_url: https://github.com/hgminh95/fast/blob/main/bench/cpp/function_call.cpp
+  explain: |
+    Surprisingly, virtual function calls can be nearly as fast as regular function calls on
+    modern CPUs. The vtable lookup adds an extra level of indirection, but with only one derived
+    type, the CPU's branch predictor quickly learns the target address.
+
+    The real cost of virtual functions is not the indirect call itself, but:
+
+    - **Inlining prevention**: virtual calls cannot be inlined (unless devirtualized by the compiler)
+    - **Cache pressure**: the vtable pointer adds 8 bytes per object
+    - **Optimization barriers**: the compiler cannot see through the indirection to optimize
+
+    The benchmarked difference is negligible because both `noinline` function and virtual call
+    pay the same call overhead. The key takeaway: prefer inlining over worrying about virtual vs non-virtual.
+
+    References:
+
+    - [Wikipedia - Virtual Method Table](https://en.wikipedia.org/wiki/Virtual_method_table)
+- title: Different Type of Static Variable
+  topic: C++
+  code1: |
+    struct Foo {
+      int Add(int x) {
+        static int a = rand() % 5;
+        return a += x;
       }
-    answer: 1
-    faster_factor: 2
-    explain: |
-      TODO
-  - title: Removing Pipeline Register
-    topic: RTL
-    wip: true
-    code1: |
-      #include cpp
-      int main() {
+    };
+  code2: |
+    struct Foo {
+      static inline int a = rand() % 5;
+
+      int Add(int x) {
+        return a += x;
       }
-    code2: |
-      #include cpp
-      int main() {
+    };
+  answer: 2
+  faster_factor: '1.05'
+  machine: AMD Ryzen 9
+  code_url: https://github.com/hgminh95/fast/blob/main/bench/cpu/static_variable.cpp
+  explain: |
+    Static member variable will be initialized when the application start. Static local variable, however,
+    will be initialized first time when it is called. That mean having an extra check in runtime to figure
+    out whether the variable is initialized or not.
+
+    You can see the guard variable check in the generated assembly with
+    `objdump -d bazel-bin/cpp/static_variable | less`. The local static version has
+    an extra branch to check the initialization guard.
+
+    References:
+
+    - [cppreference - Static Local Variables](https://en.cppreference.com/w/cpp/language/storage_duration#Static_local_variables)
+- title: Signed vs Unsigned
+  topic: C++
+  code1: |
+    // arr is an array of uint64_t
+    int sum = 0;
+    for (auto elem : arr) {
+      sum += elem / 1234;
+    }
+  code2: |
+    // arr is an array of int64_t
+    int sum = 0;
+    for (auto elem : arr) {
+      sum += elem / 1234;
+    }
+  answer: 1
+  faster_factor: '1.2'
+  machine: AMD Ryzen 9
+  code_url: https://github.com/hgminh95/fast/blob/main/bench/cpu/signed.cpp
+  explain: |
+    There are certain optimization that can only optimized for [unsigned integer divison](https://ridiculousfish.com/blog/posts/labor-of-division-episode-iii.html); making it faster in this case.
+
+    References:
+
+    - [Ridiculous Fish - Labor of Division](https://ridiculousfish.com/blog/posts/labor-of-division-episode-iii.html)
+    - [Wikipedia - Division Algorithm](https://en.wikipedia.org/wiki/Division_algorithm)
+- title: Restrict
+  topic: C++
+  code1: |
+    void Add2Elems(int * __restrict a, int * __restrict b, int x) {
+      for (int i = 0; i < 50; ++i) {
+        a[i] += x;
+        b[i] += x;
       }
-    answer: 1
-    faster_factor: 2
-    explain: |
-      TODO
-  - title: Register Layers
-    topic: RTL
-    wip: true
-    code1: |
-      #include cpp
-      int main() {
+    }
+  code2: |
+    void Add2Elems(int *a, int *b, int x) {
+      for (int i = 0; i < 50; ++i) {
+        a[i] += x;
+        b[i] += x;
       }
-    code2: |
-      #include cpp
-      int main() {
+    }
+  answer: 1
+  faster_factor: '1.9'
+  machine: AMD Ryzen 9
+  code_url: https://github.com/hgminh95/fast/blob/main/bench/cpu/alias.cpp
+  explain: |
+    `restrict` keyword let the compiler know these 2 pointers will not point to the same address. That allows compiler to assume independence between operations of `a` and `b`, leading to more optimized version.
+
+    You can compare the generated assembly: the restrict version can vectorize the loop
+    using SIMD instructions, while the non-restrict version must handle potential aliasing
+    with scalar operations.
+
+    References:
+
+    - [Wikipedia - Restrict](https://en.wikipedia.org/wiki/Restrict)
+- title: Shared Pointer
+  topic: C++
+  code1: |
+    __attribute__((noinline))
+    int Process(std::shared_ptr<Foo> p) {
+      return p->compute();
+    }
+
+    for (auto& p : arr) {
+      sum += Process(p);
+    }
+  code2: |
+    __attribute__((noinline))
+    int Process(Foo* p) {
+      return p->compute();
+    }
+
+    for (auto& p : arr) {
+      sum += Process(p.get());
+    }
+  answer: 2
+  faster_factor: '4.2'
+  machine: AMD Ryzen 9
+  code_url: https://github.com/hgminh95/fast/blob/main/bench/cpp/shared_pointer.cpp
+  explain: |
+    Passing `std::shared_ptr` by value is expensive because it involves atomic reference count
+    increment (on copy) and decrement (on destruction). Atomic operations require cache line
+    synchronization across cores, even in single-threaded code.
+
+    Prefer passing by `const&` or raw pointer when you don't need to extend ownership. The
+    guideline is: only pass `shared_ptr` by value when you intend to share ownership.
+
+    References:
+
+    - [C++ Core Guidelines - R.34](https://isocpp.github.io/CppCoreGuidelines/CppCoreGuidelines#r34-take-a-shared_ptrwidget-parameter-to-express-shared-ownership)
+    - [Herb Sutter - GotW #91](https://herbsutter.com/2013/06/05/gotw-91-solution-smart-pointer-parameters/)
+- title: Small
+  topic: C++
+  code1: |
+    for (int j = 0; j < 16; ++j) {
+      std::string s;
+      for (auto i = 0u; i < 15; ++i)
+        s += 'a';
+    }
+  code2: |
+    for (int j = 0; j < 15; ++j) {
+      std::string s;
+      for (auto i = 0u; i < 16; ++i)
+        s += 'a';
+    }
+  answer: 1
+  faster_factor: 1.46
+  machine: AMD Ryzen 9
+  code_url: https://github.com/hgminh95/fast/blob/main/bench/cpp/string.cpp
+  explain: |
+    Small String Optimization (SSO) is a way to avoid heap allocation by reusing the
+    space for metadata (e.g. pointer, capacity, size) in case the length of the
+    string is small.
+
+    The SSO cutoff varies by standard library implementation:
+    - GCC's libstdc++: 15 bytes
+    - Clang's libc++: 22 bytes
+
+    You can verify heap allocations using `valgrind --tool=massif` or by overriding `malloc`
+    to count calls. Strings exceeding the SSO cutoff trigger a heap allocation, which is
+    significantly slower.
+
+    References:
+
+    - [The Old New Thing - An informal comparison of the three major implementations of std::string](https://devblogs.microsoft.com/oldnewthing/20240510-00/?p=109742)
+- title: Chaining Function
+  topic: C++
+  code1: |
+    struct Context {
+      // complex class
+    };
+
+    void Step1(Context &ctx) {
+      // complex function
+    }
+
+    void Step2(Context &ctx) {
+      // complex function
+    }
+
+    for (auto &context : contexts) {
+      Step1(context);
+      Step2(context);
+      Step1(context);
+      Step2(context);
+    }
+  code2: |
+    for (auto &context : contexts) {
+      Step1(context);
+    }
+    for (auto &context : contexts) {
+      Step2(context);
+    }
+    for (auto &context : contexts) {
+      Step1(context);
+    }
+    for (auto &context : contexts) {
+      Step2(context);
+    }
+  answer: 2
+  faster_factor: '1.39'
+  machine: AMD Ryzen 9
+  code_url: https://github.com/hgminh95/fast/blob/main/bench/cpu/function_chain.cpp
+  explain: |
+    There are various factors that affect the performance of this:
+
+    - icache miss: the 2nd variant will have less icache missed, since we execute a smaller code at a time
+    - dcache miss: depending on the Context struct, and these Step1, Step2 function; doing them all in 1 pass could save on the time to load the context member variable or related variables in Step1, Step2 functions
+    - optimization across functions: in the first variant, multiple functions are called at one. There could be optimization that make the speed of 4 functions faster than running each 1 individually.
+    - vectorization: in the 2nd variant, it is easier to vectorize each functions
+
+    References:
+
+    - [Wikipedia - Loop Tiling](https://en.wikipedia.org/wiki/Loop_nest_optimization)
+    - [Wikipedia - Instruction Cache](https://en.wikipedia.org/wiki/CPU_cache#Instruction_cache)
+- title: ABI
+  topic: C++
+  code1: |
+    struct TriviallyCopyable {
+      int x; int y;
+    };
+
+    __attribute__((noinline))
+    TriviallyCopyable Make(int a, int b) {
+      return {a + 1, b + 2};
+    }
+  code2: |
+    struct NonTriviallyCopyable {
+      int x; int y;
+      ~NonTriviallyCopyable() {}
+    };
+
+    __attribute__((noinline))
+    NonTriviallyCopyable Make(int a, int b) {
+      return {a + 1, b + 2};
+    }
+  answer: 1
+  faster_factor: '1.2'
+  machine: AMD Ryzen 9
+  code_url: https://github.com/hgminh95/fast/blob/main/bench/cpp/abi.cpp
+  explain: |
+    On the x86-64 System V ABI, trivially copyable structs that fit in two registers (up to 16 bytes)
+    are returned in registers (RAX, RDX). Non-trivially copyable structs (those with destructors,
+    copy constructors, etc.) must be returned via a hidden pointer parameter - the caller allocates
+    stack space and passes its address to the callee.
+
+    This means non-trivially copyable returns require an extra memory store and load, while trivially
+    copyable returns stay entirely in registers. Adding a user-defined destructor or copy constructor
+    to a small struct can unexpectedly change how it's passed and returned.
+
+    Note: the actual difference is subtle and may vary by compiler and optimization level.
+
+    References:
+
+    - [Itanium C++ ABI](https://itanium-cxx-abi.github.io/cxx-abi/abi.html#return-value-ctor)
+    - [System V AMD64 ABI](https://refspecs.linuxbase.org/elf/x86_64-abi-0.99.pdf)
+- title: Batch Processing
+  topic: C++
+  code1: |
+    __attribute__((noinline))
+    void ProcessOne(int& value) {
+      value = value * 3 + 1;
+      if (value > 1000) value %= 1000;
+    }
+
+    for (auto& v : arr)
+      ProcessOne(v);
+  code2: |
+    __attribute__((noinline))
+    void ProcessBatch(int* data, int size) {
+      for (int i = 0; i < size; ++i) {
+        data[i] = data[i] * 3 + 1;
+        if (data[i] > 1000) data[i] %= 1000;
       }
-    answer: 1
-    faster_factor: 2
-    explain: |
-      TODO
-  - title: Register Balancing
-    topic: RTL
-    wip: true
-    code1: |
-      #include cpp
-      int main() {
-      }
-    code2: |
-      #include cpp
-      int main() {
-      }
-    answer: 1
-    faster_factor: 2
-    explain: |
-      TODO
-  - title: Control-based Logic Reuse
-    topic: RTL
-    wip: true
-    code1: |
-      #include cpp
-      int main() {
-      }
-    code2: |
-      #include cpp
-      int main() {
-      }
-    answer: 1
-    faster_factor: 2
-    explain: |
-      TODO
-  - title: Priority Encoders
-    topic: RTL
-    wip: true
-    code1: |
-      #include cpp
-      int main() {
-      }
-    code2: |
-      #include cpp
-      int main() {
-      }
-    answer: 1
-    faster_factor: 2
-    explain: |
+    }
+
+    ProcessBatch(arr.data(), arr.size());
+  answer: 2
+  faster_factor: '8.1'
+  machine: AMD Ryzen 9
+  code_url: https://github.com/hgminh95/fast/blob/main/bench/cpp/batch.cpp
+  explain: |
+    Processing elements one-by-one through a `noinline` function incurs per-element function
+    call overhead (push/pop registers, setup stack frame, indirect jump). With 1M elements,
+    this overhead adds up significantly.
+
+    Batch processing passes the entire array at once, paying the function call overhead only
+    once. Inside the batch function, the compiler can also apply optimizations like
+    vectorization and loop unrolling that aren't possible with single-element calls.
+
+    References:
+
+    - [Wikipedia - Amortized Analysis](https://en.wikipedia.org/wiki/Amortized_analysis)
+    - [Wikipedia - Inline Expansion](https://en.wikipedia.org/wiki/Inline_expansion)
+- title: pow
+  topic: C++
+  code1: |
+    for (int i = 1; i < 100'000; ++i) {
+      double x = static_cast<double>(i);
+      double x2 = x * x;
+      sum += x2 * x2;  // x^4 manually
+    }
+  code2: |
+    for (int i = 1; i < 100'000; ++i) {
+      sum += std::pow(static_cast<double>(i), 4.0);
+    }
+  answer: 1
+  faster_factor: '11.9'
+  machine: AMD Ryzen 9
+  code_url: https://github.com/hgminh95/fast/blob/main/bench/cpp/pow.cpp
+  explain: |
+    `std::pow` is a general-purpose function that handles arbitrary exponents, including
+    fractional and negative values. For integer exponents, this generality adds unnecessary
+    overhead - it typically uses `exp(y * log(x))` internally.
+
+    Manual multiplication for small integer powers (x*x, x*x*x, x*x*x*x) compiles to a
+    few `mulsd` instructions, which is dramatically faster than calling `pow()`.
+
+    Most compilers will optimize `std::pow(x, 2.0)` to `x * x`, but may not optimize
+    higher integer powers. If you know the exponent at compile time, manual multiplication
+    or a template-based power function is much faster.
+
+    References:
+
+    - [slowpow](https://entropymine.com/imageworsener/slowpow/)
+    - [GCC Bug - pow optimization](https://gcc.gnu.org/bugzilla/show_bug.cgi?id=43165)
+- title: Loop Reordering
+  topic: C++
+  code1: |
+    for (int i = 0; i < ROWS; ++i)
+      for (int j = 0; j < COLS; ++j)
+        sum += matrix[i][j];
+  code2: |
+    for (int j = 0; j < COLS; ++j)
+      for (int i = 0; i < ROWS; ++i)
+        sum += matrix[i][j];
+  answer: 1
+  faster_factor: '16.2'
+  machine: AMD Ryzen 9
+  code_url: https://github.com/hgminh95/fast/blob/main/bench/cpp/loop_reorder.cpp
+  explain: |
+    C/C++ stores 2D arrays in row-major order: `matrix[i][j]` and `matrix[i][j+1]` are adjacent
+    in memory. Row-major traversal accesses memory sequentially, making full use of each cache
+    line and enabling hardware prefetching.
+
+    Column-major traversal jumps between rows on each access, causing a cache miss for every
+    element when the matrix is large enough. Each access loads a full cache line (64 bytes) but
+    only uses 4 bytes of it before moving to a different cache line.
+
+    This is one of the most impactful optimizations in numerical computing. The fix is simple:
+    swap the loop order so the inner loop iterates over the contiguous dimension.
+
+    References:
+
+    - [Wikipedia - Row- and Column-Major Order](https://en.wikipedia.org/wiki/Row-_and_column-major_order)
+    - [Wikipedia - Loop Nest Optimization](https://en.wikipedia.org/wiki/Loop_nest_optimization)
+- title: Moving Data
+  topic: GPU
+  code1: |
+    cudaMalloc(&d_data, size);
+    cudaMemcpy(d_data, h_data, size, cudaMemcpyHostToDevice);
+    kernel<<<blocks, threads>>>(d_data);
+    kernel2<<<blocks, threads>>>(d_data);
+  code2: |
+    cudaMalloc(&d_data, size);
+    cudaMemcpy(d_data, h_data, size, cudaMemcpyHostToDevice);
+    kernel<<<blocks, threads>>>(d_data);
+    cudaMemcpy(h_data, d_data, size, cudaMemcpyDeviceToHost);
+    cudaMemcpy(d_data, h_data, size, cudaMemcpyHostToDevice);
+    kernel2<<<blocks, threads>>>(d_data);
+  answer: 1
+  faster_factor: 10
+  explain: |
+    PCIe bandwidth (~32 GB/s for PCIe 4.0 x16) is much lower than GPU memory bandwidth
+    (~900 GB/s for HBM2e). Every host-device transfer is a bottleneck.
+
+    Minimize data movement by keeping data on the GPU as long as possible. Even if a kernel
+    is less efficient on the GPU than CPU, avoiding the transfer may make it worthwhile to
+    compute on the GPU anyway.
+
+    References:
+
+    - [NVIDIA - Data Transfer Optimization](https://docs.nvidia.com/cuda/cuda-c-best-practices-guide/index.html#data-transfer-between-host-and-device)
+- title: Coalesced Access
+  topic: GPU
+  code1: |
+    __global__ void kernel(float* data, int N) {
+      int idx = blockIdx.x * blockDim.x + threadIdx.x;
+      data[idx] += 1.0f;
+    }
+  code2: |
+    __global__ void kernel(float* data, int N, int stride) {
+      int idx = (blockIdx.x * blockDim.x + threadIdx.x) * stride;
+      data[idx] += 1.0f;
+    }
+  answer: 1
+  faster_factor: 10
+  explain: |
+    GPU memory is accessed in large transactions (32/64/128 bytes). When threads in a warp
+    access consecutive addresses, the hardware coalesces these into a single memory transaction.
+
+    Strided access forces multiple transactions per warp, wasting bandwidth. In the worst case,
+    32 threads each require a separate 128-byte transaction, achieving only 4/128 = 3% bandwidth
+    utilization.
+
+    References:
+
+    - [NVIDIA - Memory Coalescing](https://docs.nvidia.com/cuda/cuda-c-best-practices-guide/index.html#coalesced-access-to-global-memory)
+- title: Misaligned Access
+  topic: GPU
+  code1: |
+    __global__ void kernel(float* data) {
+      int idx = blockIdx.x * blockDim.x + threadIdx.x;
+      data[idx] += 1.0f;
+    }
+  code2: |
+    __global__ void kernel(float* data) {
+      int idx = blockIdx.x * blockDim.x + threadIdx.x;
+      data[idx + 1] += 1.0f;
+    }
+  answer: 1
+  faster_factor: 2
+  explain: |
+    GPU memory transactions are aligned to segment boundaries (32/64/128 bytes). When a warp's
+    access pattern crosses a segment boundary due to misalignment, it requires an additional
+    transaction.
+
+    For example, 32 threads reading 4 bytes each = 128 bytes. If aligned, this is one 128-byte
+    transaction. If misaligned by even one element, the data spans two segments, requiring two
+    transactions and doubling the bandwidth cost.
+
+    References:
+
+    - [NVIDIA - Misaligned Access](https://docs.nvidia.com/cuda/cuda-c-best-practices-guide/index.html#misaligned-data-accesses)
+- title: The Swizzle Operator
+  topic: GPU
+  code1: |
+    __shared__ float smem[BLOCK_SIZE][BLOCK_SIZE + 1];
+    smem[threadIdx.y][threadIdx.x ^ threadIdx.y] = data[idx];
+  code2: |
+    __shared__ float smem[BLOCK_SIZE][BLOCK_SIZE];
+    smem[threadIdx.y][threadIdx.x] = data[idx];
+  answer: 1
+  faster_factor: 4
+  explain: |
+    GPU shared memory is divided into 32 banks. When multiple threads in a warp access different
+    addresses in the same bank, the accesses are serialized (bank conflict).
+
+    The swizzle operator (XOR-based index transformation) remaps memory addresses so that
+    threads in a warp access different banks, even for column-wise access patterns. This is
+    particularly important for matrix transpose and GEMM operations.
+
+    The traditional workaround of padding (e.g., NxN+1 instead of NxN) wastes shared
+    memory. Swizzling achieves conflict-free access without wasting memory.
+
+    References:
+
+    - [NVIDIA - Shared Memory Bank Conflicts](https://docs.nvidia.com/cuda/cuda-c-programming-guide/index.html#shared-memory-5-x)
+    - [CUTLASS - Swizzle](https://github.com/NVIDIA/cutlass)
+- title: Kernel Fusion
+  topic: GPU
+  code1: |
+    __global__ void fused(float* data, int N) {
+      int idx = blockIdx.x * blockDim.x + threadIdx.x;
+      float x = data[idx];
+      x = x * 2.0f + 1.0f;   // op1
+      x = sqrtf(x);           // op2
+      data[idx] = x;
+    }
+  code2: |
+    __global__ void op1(float* data, int N) {
+      int idx = blockIdx.x * blockDim.x + threadIdx.x;
+      data[idx] = data[idx] * 2.0f + 1.0f;
+    }
+    __global__ void op2(float* data, int N) {
+      int idx = blockIdx.x * blockDim.x + threadIdx.x;
+      data[idx] = sqrtf(data[idx]);
+    }
+  answer: 1
+  faster_factor: 2
+  explain: |
+    Kernel fusion combines multiple operations into a single kernel, reducing memory round-trips.
+    Each separate kernel must read data from global memory and write results back. A fused kernel
+    keeps intermediate values in registers, avoiding the global memory write-read between steps.
+
+    For memory-bound operations, fusion can nearly double throughput by halving memory accesses.
+    However, fusion increases register pressure and may reduce occupancy, so there's a tradeoff.
+
+    Frameworks like PyTorch and TensorFlow heavily rely on kernel fusion (via torch.compile,
+    XLA) to achieve good GPU performance.
+
+    References:
+
+    - [NVIDIA - Kernel Fusion](https://developer.nvidia.com/blog/optimizing-gpu-performance-tensor-cores/)
+    - [Wikipedia - Loop Fusion](https://en.wikipedia.org/wiki/Loop_fission_and_fusion)
+- title: Kernel Fission
+  topic: GPU
+  code1: |
+    __global__ void compute(float* out, float* in, int N) {
+      int idx = blockIdx.x * blockDim.x + threadIdx.x;
+      out[idx] = heavy_compute(in[idx]);
+    }
+    __global__ void scatter(float* dst, float* src, int* map, int N) {
+      int idx = blockIdx.x * blockDim.x + threadIdx.x;
+      dst[map[idx]] = src[idx];
+    }
+  code2: |
+    __global__ void combined(float* dst, float* in, int* map, int N) {
+      int idx = blockIdx.x * blockDim.x + threadIdx.x;
+      dst[map[idx]] = heavy_compute(in[idx]);
+    }
+  answer: 1
+  faster_factor: 1.5
+  explain: |
+    Kernel fission is the opposite of fusion: splitting one kernel into multiple specialized
+    kernels. This can help when a kernel has both compute-heavy and memory-heavy parts with
+    different resource requirements.
+
+    By splitting, each kernel can be tuned independently: the compute kernel can use more
+    registers and higher occupancy for compute, while the scatter kernel can optimize for
+    memory access patterns. The scheduler can also better overlap different resource types.
+
+    Fission is beneficial when the combined kernel has poor occupancy due to high register
+    usage, or when different parts of the kernel have fundamentally different access patterns.
+
+    References:
+
+    - [Wikipedia - Loop Fission](https://en.wikipedia.org/wiki/Loop_fission_and_fusion)
+    - [NVIDIA - Occupancy](https://docs.nvidia.com/cuda/cuda-c-best-practices-guide/index.html#occupancy)
+- title: Pipelining
+  topic: RTL
+  wip: true
+  code1: |
+    // Combinational: 1 cycle, fmax ~ 100 MHz
+    always @(posedge clk) begin
+      result <= (a * b + c) * d;
+    end
+  code2: |
+    // 3-stage pipeline: 3 cycles, fmax ~ 300 MHz
+    always @(posedge clk) begin
+      stage1 <= a * b;
+      stage2 <= stage1 + c;
+      result <= stage2 * d;
+    end
+  answer: 1
+  faster_factor: 1
+  explain: |
+    Latency = cycles / fmax. The combinational version completes in 1 cycle but at a lower
+    clock frequency (long critical path through two multipliers and an adder). The pipelined
+    version takes 3 cycles but at ~3x higher fmax.
+
+    In this case, `1 / 100MHz = 10ns` vs `3 / 300MHz = 10ns` — the latencies are roughly equal.
+    However, the pipelined version has ~3x higher **throughput** (one result per cycle at 300MHz
+    vs one per cycle at 100MHz).
+
+    Pipelining trades latency (more cycles) for throughput (higher fmax). Choose based on
+    whether your design is latency-sensitive or throughput-sensitive.
+
+    References:
+
+    - [Wikipedia - Instruction Pipelining](https://en.wikipedia.org/wiki/Instruction_pipelining)
+    - [FPGA4Fun - Pipelining](https://www.fpga4fun.com/PipelineStages.html)
+- title: Removing Pipeline Register
+  topic: RTL
+  wip: true
+  code1: |
+    // 2-stage: 2 cycles, fmax ~ 500 MHz
+    always @(posedge clk) begin
+      temp <= a + b;
+      result <= temp * c;
+    end
+  code2: |
+    // Single cycle: 1 cycle, fmax ~ 200 MHz
+    always @(posedge clk) begin
+      result <= (a + b) * c;
+    end
+  answer: 2
+  faster_factor: 1.25
+  explain: |
+    Removing a pipeline register reduces cycle count from 2 to 1, but also lowers fmax because
+    the critical path now includes both the adder and multiplier.
+
+    Latency comparison: `2 / 500MHz = 4ns` vs `1 / 200MHz = 5ns`. The pipelined version
+    actually has slightly lower latency here because the fmax improvement more than compensates
+    for the extra cycle.
+
+    However, this depends on the specific logic. If removing the register only drops fmax by
+    less than 2x, the single-cycle version wins on latency. The tradeoff also depends on whether
+    other parts of the design constrain fmax anyway.
+
+    References:
+
+    - [Wikipedia - Pipeline Stall](https://en.wikipedia.org/wiki/Pipeline_stall)
+- title: Register Layers
+  topic: RTL
+  wip: true
+  code1: |
+    // 2 register layers
+    always @(posedge clk) begin
+      r1 <= a + b + c;
+      result <= r1 + d + e;
+    end
+  code2: |
+    // 4 register layers
+    always @(posedge clk) begin
+      r1 <= a + b;
+      r2 <= r1 + c;
+      r3 <= r2 + d;
+      result <= r3 + e;
+    end
+  answer: 1
+  faster_factor: 1.3
+  explain: |
+    More register layers means more pipeline stages: higher fmax but more cycles.
+
+    With 2 layers at fmax ~400MHz: latency = `2 / 400MHz = 5ns`.
+    With 4 layers at fmax ~600MHz: latency = `4 / 600MHz = 6.7ns`.
+
+    Each additional register layer has diminishing returns on fmax improvement (due to
+    register setup/hold time overhead), while linearly increasing cycle count. Beyond a
+    certain point, adding more layers hurts latency.
+
+    The optimal number of pipeline stages depends on the target clock constraint and
+    the logic depth of the combinational path.
+
+    References:
+
+    - [Xilinx - Pipelining](https://docs.amd.com/r/en-US/ug901-vivado-synthesis/Pipelining)
+- title: Register Balancing
+  topic: RTL
+  wip: true
+  code1: |
+    // Unbalanced: stage 1 is the bottleneck
+    always @(posedge clk) begin
+      // Stage 1: multiply + add (slow, 8ns)
+      temp <= a * b + c;
+      // Stage 2: add only (fast, 2ns)
+      result <= temp + d;
+    end
+  code2: |
+    // Balanced: both stages ~5ns
+    always @(posedge clk) begin
+      // Stage 1: multiply only (5ns)
+      temp <= a * b;
+      // Stage 2: add + add (5ns)
+      result <= temp + c + d;
+    end
+  answer: 2
+  faster_factor: 1.6
+  explain: |
+    Both designs have 2 pipeline stages, so cycle count is the same. But fmax is limited by
+    the **slowest** stage. In the unbalanced version, stage 1 takes 8ns → fmax = 125MHz.
+    In the balanced version, both stages take 5ns → fmax = 200MHz.
+
+    Latency: `2 / 125MHz = 16ns` vs `2 / 200MHz = 10ns`. Balancing gives 1.6x lower latency
+    with the same number of pipeline stages.
+
+    Register balancing (also called retiming) can be done manually or by synthesis tools.
+    Most FPGA synthesis tools have a retiming optimization pass that automatically moves
+    registers to balance pipeline stages.
+
+    References:
+
+    - [Wikipedia - Retiming](https://en.wikipedia.org/wiki/Retiming)
+    - [Xilinx - Retiming](https://docs.amd.com/r/en-US/ug901-vivado-synthesis/Retiming)
+- title: Control-based Logic Reuse
+  topic: RTL
+  wip: true
+  code1: |
+    // Dedicated: two multipliers, 1 cycle
+    always @(posedge clk) begin
+      result1 <= a * b;
+      result2 <= c * d;
+    end
+  code2: |
+    // Shared: one multiplier, time-multiplexed, 2 cycles
+    always @(posedge clk) begin
+      if (phase == 0) begin
+        mult_out <= a * b;
+        phase <= 1;
+      end else begin
+        mult_out <= c * d;
+        phase <= 0;
+      end
+    end
+  answer: 1
+  faster_factor: 2
+  explain: |
+    Both designs run at similar fmax (the mux adds negligible delay). The dedicated version
+    completes both multiplications in 1 cycle, while the shared version takes 2 cycles.
+
+    Latency: `1 / fmax` vs `2 / fmax` = 2x difference.
+
+    However, the shared version uses only one multiplier instead of two, saving significant
+    area (multipliers are expensive in FPGAs). This is a classic **area vs latency** tradeoff.
+
+    Control-based reuse is common when area is constrained and throughput requirements allow
+    time-multiplexing. DSP blocks on FPGAs are limited, so sharing them is often necessary.
+
+    References:
+
+    - [Wikipedia - Resource Sharing](https://en.wikipedia.org/wiki/Resource_sharing_(computer_architecture))
+- title: Priority Encoders
+  topic: RTL
+  wip: true
+  code1: |
+    // Chain priority: O(N) critical path
+    assign out = req[0] ? 3'd0 :
+                 req[1] ? 3'd1 :
+                 req[2] ? 3'd2 :
+                 req[3] ? 3'd3 :
+                 req[4] ? 3'd4 :
+                 req[5] ? 3'd5 :
+                 req[6] ? 3'd6 :
+                 req[7] ? 3'd7 : 3'd0;
+  code2: |
+    // Tree priority: O(log N) critical path
+    wire [1:0] lo, hi;
+    wire lo_valid, hi_valid;
+    prio4 prio_lo(.req(req[3:0]), .out(lo),
+                  .valid(lo_valid));
+    prio4 prio_hi(.req(req[7:4]), .out(hi),
+                  .valid(hi_valid));
+    assign out = lo_valid ? {1'b0, lo}
+                          : {1'b1, hi};
+  answer: 2
+  faster_factor: 1.5
+  explain: |
+    Both are combinational (1 cycle), so the difference is purely in fmax.
+
+    The chain encoder has O(N) logic depth — each ternary operator depends on the previous one.
+    With 8 inputs, the critical path goes through 8 levels of muxes.
+
+    The tree encoder splits inputs into halves, encodes each half independently, then merges.
+    This gives O(log N) depth — only 3 levels for 8 inputs.
+
+    Latency: `1 / fmax_chain` vs `1 / fmax_tree`. The tree version has ~1.5x higher fmax due
+    to the shorter critical path, giving proportionally lower latency.
+
+    This matters more at scale: for 64-bit priority encoding, chain has 64 levels while
+    tree has only 6.
+
+    References:
+
+    - [Wikipedia - Priority Encoder](https://en.wikipedia.org/wiki/Priority_encoder)

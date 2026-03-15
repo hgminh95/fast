@@ -1,18 +1,17 @@
 import logging
 import os
-import time
-import shutil
 import re
+import shutil
+import time
 
-import jinja2
 import click
-import yaml
+import jinja2
 import markdown
-from watchdog.observers import Observer
+import yaml
 from watchdog.events import FileSystemEventHandler
+from watchdog.observers import Observer
 
 import config
-
 
 _logger = logging.getLogger(__name__)
 
@@ -28,9 +27,9 @@ def _find_md_links(md):
     Return dict of links in markdown
     From: https://stackoverflow.com/questions/30734682/extracting-url-and-anchor-text-from-markdown-using-python
     """
-    INLINE_LINK_RE = re.compile(r'\[([^\]]+)\]\(([^)]+)\)')
-    FOOTNOTE_LINK_TEXT_RE = re.compile(r'\[([^\]]+)\]\[(\d+)\]')
-    FOOTNOTE_LINK_URL_RE = re.compile(r'\[(\d+)\]:\s+(\S+)')
+    INLINE_LINK_RE = re.compile(r"\[([^\]]+)\]\(([^)]+)\)")
+    FOOTNOTE_LINK_TEXT_RE = re.compile(r"\[([^\]]+)\]\[(\d+)\]")
+    FOOTNOTE_LINK_URL_RE = re.compile(r"\[(\d+)\]:\s+(\S+)")
 
     links = dict(INLINE_LINK_RE.findall(md))
     footnote_links = dict(FOOTNOTE_LINK_TEXT_RE.findall(md))
@@ -55,7 +54,7 @@ def _load_data(no_wip):
         m["url_id"] = m["name"].strip().replace(" ", "_").lower()
 
     if no_wip:
-        data["questions"] = list(filter(lambda x: "wip" not in x or x["wip"] == False, data["questions"]))
+        data["questions"] = list(filter(lambda x: "wip" not in x or not x["wip"], data["questions"]))
 
     for q in data["questions"]:
         q["url_id"] = q["title"].strip().replace(" ", "_").lower()
@@ -148,9 +147,7 @@ def main(watch, no_wip):
 
     if not watch:
         _logger.info("Run below command to run a test server")
-        _logger.info(
-            f"cd {os.path.abspath(config.BUILD_ROOT)} && python3 -m http.server"
-        )
+        _logger.info(f"cd {os.path.abspath(config.BUILD_ROOT)} && python3 -m http.server")
         _logger.info("Done.")
     else:
         observer = Observer()

@@ -32,7 +32,7 @@ static void BM_FalseSharing(benchmark::State& state) {
         }
       });
     }
-    
+
     ts[0].join();
     ts[1].join();
   }

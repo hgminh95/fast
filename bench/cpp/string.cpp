@@ -16,6 +16,6 @@ static void BM_String(benchmark::State& state) {
   }
 }
 
-BENCHMARK(BM_String)->DenseRange(22, 23, 1);
+BENCHMARK(BM_String)->DenseRange(15, 16, 1);
 
 BENCHMARK_MAIN();

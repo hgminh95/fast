@@ -8,48 +8,178 @@
 {% endblock %}
 
 {% block page_title %}
-<h1 class="mx-6 mt-12 w-[300px] bg-gradient-to-b bg-clip-text pb-4 text-center text-5xl font-extrabold leading-tight text-transparent from-white to-[#AAAAAA] w-full">
+<h1 class="mx-6 mt-4 w-[300px] bg-gradient-to-b bg-clip-text pb-2 text-center text-4xl font-extrabold leading-tight text-transparent from-white to-[#AAAAAA] w-full">
   {{ q.title }}
 </h1>
 {% endblock %}
 {% block content %}
 
+<style>
+  @keyframes correctPulse {
+    0% { box-shadow: 0 0 0 0 rgba(74, 222, 128, 0.7); }
+    50% { box-shadow: 0 0 25px 8px rgba(74, 222, 128, 0.3); }
+    100% { box-shadow: 0 0 40px 12px rgba(74, 222, 128, 0); }
+  }
+  @keyframes wrongShake {
+    0%, 100% { transform: translateX(0); }
+    15%, 45%, 75% { transform: translateX(-4px); }
+    30%, 60%, 90% { transform: translateX(4px); }
+  }
+  @keyframes fadeSlideIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  @keyframes confettiBurst {
+    0% { transform: scale(0) rotate(0deg); opacity: 1; }
+    50% { transform: scale(1.2) rotate(180deg); opacity: 0.8; }
+    100% { transform: scale(0) rotate(360deg); opacity: 0; }
+  }
+  .result-label {
+    animation: fadeSlideIn 0.4s ease-out;
+  }
+  .code-panel {
+    transition: border-color 0.3s ease, box-shadow 0.3s ease, transform 0.2s ease;
+    border-radius: 8px;
+    cursor: pointer;
+  }
+  .code-panel:hover:not(.answered) {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 20px rgba(74, 222, 128, 0.15);
+  }
+  .code-panel.correct {
+    animation: correctPulse 0.8s ease-out;
+    border-color: #4ade80 !important;
+    box-shadow: 0 0 30px rgba(74, 222, 128, 0.2);
+  }
+  .code-panel.wrong {
+    animation: wrongShake 0.5s ease-out;
+    border-color: #ef4444 !important;
+  }
+  .code-panel.dimmed {
+    opacity: 0.6;
+  }
+  .select-btn {
+    transition: all 0.2s ease;
+    padding: 8px 24px;
+    border-radius: 6px;
+    font-weight: 500;
+    border: 1px solid rgba(255,255,255,0.1);
+    background: rgba(255,255,255,0.05);
+  }
+  .select-btn:hover {
+    background: rgba(74, 222, 128, 0.15);
+    border-color: rgba(74, 222, 128, 0.4);
+    transform: scale(1.02);
+  }
+  .select-btn:active {
+    transform: scale(0.98);
+  }
+  .action-btns {
+    animation: fadeSlideIn 0.5s ease-out;
+  }
+  .confetti-particle {
+    position: fixed;
+    pointer-events: none;
+    z-index: 100;
+    border-radius: 2px;
+  }
+</style>
+
 <script>
   let run_once = false;
-  function select(choice) {
-    if (run_once) {
-      return;
-    }
+  let answer = {{ q.answer }};
 
+  // Randomize panel order to avoid position bias
+  (function() {
+    if (Math.random() < 0.5) {
+      const container = document.getElementById('code-panels');
+      const panels = Array.from(container.children);
+      container.insertBefore(panels[1], panels[0]);
+      // Swap onclick handlers
+      panels[0].setAttribute('onclick', 'select(2)');
+      panels[1].setAttribute('onclick', 'select(1)');
+      answer = answer === 1 ? 2 : 1;
+    }
+  })();
+
+  function spawnConfetti() {
+    const colors = ['#4ade80', '#22d3ee', '#a78bfa', '#f472b6', '#fbbf24', '#fb923c'];
+    for (let i = 0; i < 40; i++) {
+      const el = document.createElement('div');
+      el.className = 'confetti-particle';
+      el.style.width = (4 + Math.random() * 6) + 'px';
+      el.style.height = (4 + Math.random() * 6) + 'px';
+      el.style.background = colors[Math.floor(Math.random() * colors.length)];
+      el.style.left = (30 + Math.random() * 40) + 'vw';
+      el.style.top = (20 + Math.random() * 30) + 'vh';
+      document.body.appendChild(el);
+
+      const angle = Math.random() * Math.PI * 2;
+      const speed = 100 + Math.random() * 200;
+      const dx = Math.cos(angle) * speed;
+      const dy = Math.sin(angle) * speed - 150;
+      const rotation = Math.random() * 720 - 360;
+
+      el.animate([
+        { transform: 'translate(0,0) rotate(0deg)', opacity: 1 },
+        { transform: `translate(${dx}px, ${dy + 300}px) rotate(${rotation}deg)`, opacity: 0 }
+      ], { duration: 800 + Math.random() * 600, easing: 'cubic-bezier(0.25, 0.46, 0.45, 0.94)' });
+
+      setTimeout(() => el.remove(), 1500);
+    }
+  }
+
+  function select(choice) {
+    if (run_once) return;
     run_once = true;
+
     let explainBtn = document.getElementById("explain-btn");
     let nextBtn = document.getElementById("next-btn");
     let randomBtn = document.getElementById("random-btn");
     let codes = [document.getElementById("code1"), document.getElementById("code2")];
     let descs = [document.getElementById("desc1"), document.getElementById("desc2")];
 
-    if (choice === {{ q.answer }}) {
+    codes[0].classList.add("answered");
+    codes[1].classList.add("answered");
+
+    const isCorrect = choice === answer;
+
+    if (isCorrect) {
       if (!solvedProblems.includes("{{ q.url_id }}")) {
         solvedProblems.push("{{ q.url_id }}");
         localStorage.setItem("solvedProblems", JSON.stringify(solvedProblems));
+        const score = document.getElementById("score");
+        score.innerHTML = "" + solvedProblems.length + " / " + {{ questions|length }};
       }
-      codes[choice - 1].classList.add("!border-green-300");
-      descs[choice - 1].innerHTML = "Correct! This is {{ q.faster_factor }}x faster";
-      descs[choice - 1].classList.add("text-green-700");
-      descs[choice - 1].classList.add("font-bold");
-      descs[1 - (choice - 1)].innerHTML = "This is slower";
+      codes[choice - 1].classList.add("correct");
+      descs[choice - 1].innerHTML = '<i class="fa-solid fa-check mr-1"></i> Correct! {{ q.faster_factor }}x {% if q.topic == "RTL" %}lower latency{% else %}faster{% endif %}';
+      descs[choice - 1].classList.add("text-green-400", "font-bold", "result-label");
+      descs[1 - (choice - 1)].innerHTML = '<i class="fa-solid fa-minus mr-1"></i> {% if q.topic == "RTL" %}Higher latency{% else %}Slower{% endif %}';
+      descs[1 - (choice - 1)].classList.add("text-gray-500", "result-label");
+      codes[1 - (choice - 1)].classList.add("dimmed");
+      spawnConfetti();
     } else {
-      codes[choice - 1].classList.add("!border-red-700");
-      descs[choice - 1].innerHTML = "Wrong! This is slower";
-      descs[choice - 1].classList.add("text-red-700");
-      descs[choice - 1].classList.add("font-bold");
-      descs[1 - (choice - 1)].innerHTML = "This is {{ q.faster_factor }}x faster";
+      codes[choice - 1].classList.add("wrong");
+      descs[choice - 1].innerHTML = '<i class="fa-solid fa-xmark mr-1"></i> Wrong! This is {% if q.topic == "RTL" %}higher latency{% else %}slower{% endif %}';
+      descs[choice - 1].classList.add("text-red-400", "font-bold", "result-label");
+      descs[1 - (choice - 1)].innerHTML = '<i class="fa-solid fa-check mr-1"></i> {{ q.faster_factor }}x {% if q.topic == "RTL" %}lower latency{% else %}faster{% endif %}';
+      descs[1 - (choice - 1)].classList.add("text-green-400", "result-label");
+      codes[choice - 1].classList.add("dimmed");
+      codes[1 - (choice - 1)].classList.add("correct");
     }
-    codes[1 - (choice - 1)].classList.remove("hover:border-green-300");
 
-    explainBtn.style.display = "block";
-    nextBtn.style.display = "block";
-    randomBtn.style.display = "block";
+    // Show action buttons with stagger
+    setTimeout(() => {
+      explainBtn.style.display = "block";
+      explainBtn.classList.add("action-btns");
+    }, 300);
+    setTimeout(() => {
+      nextBtn.style.display = "block";
+      nextBtn.classList.add("action-btns");
+      randomBtn.style.display = "block";
+      randomBtn.classList.add("action-btns");
+    }, 500);
+
     while (1) {
       let randQId = qIds[Math.floor(Math.random() * qIds.length)];
       if (randQid != "{{ q.url_id }}") {
@@ -58,6 +188,45 @@
       }
     }
   }
+
+  function selectLang(lang) {
+    let cppBlocks = document.querySelectorAll('.code-cpp');
+    let zigBlocks = document.querySelectorAll('.code-zig');
+    let cppBtn = document.getElementById('btn-cpp');
+    let zigBtn = document.getElementById('btn-zig');
+    if (!zigBtn) return;
+    localStorage.setItem('preferredLang', lang);
+    if (lang === 'zig') {
+      cppBlocks.forEach(el => el.style.display = 'none');
+      zigBlocks.forEach(el => el.style.display = 'block');
+      cppBtn.classList.remove('bg-green-600', 'text-white', 'border-green-500');
+      cppBtn.classList.add('bg-transparent');
+      zigBtn.classList.add('bg-green-600', 'text-white', 'border-green-500');
+      zigBtn.classList.remove('bg-transparent');
+      zigBlocks.forEach(el => {
+        let code = el.querySelector('code');
+        if (code) {
+          code.textContent = code.textContent;
+          Prism.highlightElement(code);
+        }
+      });
+    } else {
+      cppBlocks.forEach(el => el.style.display = 'block');
+      zigBlocks.forEach(el => el.style.display = 'none');
+      cppBtn.classList.add('bg-green-600', 'text-white', 'border-green-500');
+      cppBtn.classList.remove('bg-transparent');
+      zigBtn.classList.remove('bg-green-600', 'text-white', 'border-green-500');
+      zigBtn.classList.add('bg-transparent');
+    }
+  }
+
+  // Restore saved language preference after DOM is ready
+  document.addEventListener('DOMContentLoaded', function() {
+    let saved = localStorage.getItem('preferredLang');
+    if (saved && document.getElementById('btn-zig')) {
+      selectLang(saved);
+    }
+  });
 
   function toggleExplain() {
     let explainMd = document.getElementById("explain-md");
@@ -75,23 +244,37 @@
 </script>
 
 <div class="px-6 space-y-3">
+  {% if q.topic == "Memory" or q.topic == "CPU" %}
   <div class="inline-flex rounded-md shadow-xs" role="group">
-    <button type="button" class="px-3 py-1 text-sm font-medium text-gray-100 bg-transparent border border-gray-200 rounded-s-lg hover:bg-gray-100 hover:text-blue-700 focus:z-10 focus:ring-2 focus:ring-blue-700 focus:text-blue-700">
+    <button id="btn-cpp" type="button" onclick="selectLang('cpp')" class="px-3 py-1 text-sm font-medium text-white bg-green-600 border border-green-500 rounded-s-lg hover:brightness-110 transition-all">
       C++
     </button>
-    <button type="button" class="px-3 py-1 text-sm font-medium text-gray-900 bg-gray-500 border-t border-b border-gray-200 rounded-e-lg focus:z-10 focus:ring-2 focus:ring-blue-700 focus:text-blue-700">
+    {% if "code1_zig" in q %}
+    <button id="btn-zig" type="button" onclick="selectLang('zig')" class="px-3 py-1 text-sm font-medium text-gray-100 bg-transparent border border-gray-200 rounded-e-lg hover:brightness-110 transition-all">
+      Zig
+    </button>
+    {% else %}
+    <button type="button" class="px-3 py-1 text-sm font-medium text-gray-900 bg-gray-500 border-t border-b border-gray-200 rounded-e-lg" disabled>
       Zig - WIP
     </button>
+    {% endif %}
   </div>
-  <div class="z-10 flex w-full flex-col items-center justify-center gap-6 sm:mx-0 md:mb-0 lg:!translate-y-0 lg:!flex-row">
-    <div id="code1" class="relative flex h-full w-full max-w-full flex-col items-center border bg-black hover:border-green-300 pb-3">
-      <pre class="w-full !mt-0 h-80 text-sm"><code class="language-cpp line-numbers" data-prismjs-copy="Copy">{{ q.code1 }}</code></pre>
-      <button onclick="select(1)" id="desc1">^ This is Faster?</button>
+  {% endif %}
+  <div id="code-panels" class="z-10 flex w-full flex-col items-center justify-center gap-6 sm:mx-0 md:mb-0 lg:!translate-y-0 lg:!flex-row">
+    <div id="code1" class="code-panel relative flex h-full w-full max-w-full flex-col items-center border border-gray-700 bg-black pb-3" onclick="select(1)">
+      <pre class="code-cpp w-full !mt-0 h-80 text-sm"><code class="language-{% if q.topic == 'RTL' %}verilog{% else %}cpp{% endif %} line-numbers" data-prismjs-copy="Copy">{{ q.code1 }}</code></pre>
+      {% if "code1_zig" in q %}
+      <pre class="code-zig w-full !mt-0 h-80 text-sm" style="display: none"><code class="language-zig line-numbers" data-prismjs-copy="Copy">{{ q.code1_zig }}</code></pre>
+      {% endif %}
+      <div id="desc1" class="select-btn mt-2">^ This is {% if q.topic == 'RTL' %}Lower Latency{% else %}Faster{% endif %}?</div>
     </div>
-  
-    <div id="code2" class="relative flex h-full w-full max-w-full flex-col items-center border bg-black hover:border-green-300 pb-3">
-      <pre class="w-full !mt-0 h-80 text-sm"><code class="language-cpp line-numbers" data-prismjs-copy="Copy">{{ q.code2 }}</code></pre>
-      <button onclick="select(2)" id="desc2">^ This is Faster?</button>
+
+    <div id="code2" class="code-panel relative flex h-full w-full max-w-full flex-col items-center border border-gray-700 bg-black pb-3" onclick="select(2)">
+      <pre class="code-cpp w-full !mt-0 h-80 text-sm"><code class="language-{% if q.topic == 'RTL' %}verilog{% else %}cpp{% endif %} line-numbers" data-prismjs-copy="Copy">{{ q.code2 }}</code></pre>
+      {% if "code2_zig" in q %}
+      <pre class="code-zig w-full !mt-0 h-80 text-sm" style="display: none"><code class="language-zig line-numbers" data-prismjs-copy="Copy">{{ q.code2_zig }}</code></pre>
+      {% endif %}
+      <div id="desc2" class="select-btn mt-2">^ This is {% if q.topic == 'RTL' %}Lower Latency{% else %}Faster{% endif %}?</div>
     </div>
   </div>
   {% if "machine" in q %}
@@ -112,12 +295,12 @@
     <button type="button" id="explain-btn" onclick="toggleExplain()" class="py-2.5 pl-3 pr-5 me-2 text-sm font-medium rounded-lg border bg-gray-800 text-gray-400 border-gray-600 hover:text-white hover:bg-gray-700 inline-flex items-center" style="display: none">
       <i id="explain-btn-ico" class="fa-solid fa-caret-right mr-2"></i> Show Explanation
     </button>
-    <div class="flex flex-1 justify-end">
-      <a href="/q/{{ q.next_url_id }}.html" id="random-btn" class="py-2.5 pl-3 pr-3 me-2 text-sm font-medium rounded-lg border bg-green-100 text-black border-gray-600 hover:text-black hover:bg-green-200 inline-flex items-center" style="display: none">
+    <div class="flex flex-1 justify-end gap-2">
+      <a href="/q/{{ q.next_url_id }}.html" id="random-btn" class="py-2.5 pl-3 pr-3 text-sm font-medium rounded-lg border bg-green-100 text-black border-gray-600 hover:text-black hover:bg-green-200 inline-flex items-center gap-1" style="display: none">
         <i class="fa-solid fa-shuffle"></i>
         <span class="hidden md:inline">Random</span>
       </a>
-      <a href="/q/{{ q.next_url_id }}.html" id="next-btn" class="py-2.5 pl-3 pr-3 me-2 text-sm font-medium rounded-lg border bg-green-100 text-black border-gray-600 hover:text-black hover:bg-green-200 inline-flex items-center" style="display: none">
+      <a href="/q/{{ q.next_url_id }}.html" id="next-btn" class="py-2.5 pl-3 pr-3 text-sm font-medium rounded-lg border bg-green-100 text-black border-gray-600 hover:text-black hover:bg-green-200 inline-flex items-center gap-1" style="display: none">
         <i class="fa-solid fa-forward"></i>
         <span class="hidden md:inline">Next</span>
       </a>

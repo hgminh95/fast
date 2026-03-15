@@ -1,10 +1,10 @@
 #include <benchmark/benchmark.h>
 
-#include "common/array.h"
-
-#include <thread>
 #include <atomic>
 #include <chrono>
+#include <thread>
+
+#include "common/array.h"
 
 template <size_t N>
 struct FooWithCachedBar {
@@ -40,7 +40,7 @@ static void BM_FooWithCachedBar(benchmark::State& state) {
   auto arr = MakeArr<FooWithCachedBar<30>>(1'000'000);
 
   for (auto _ : state) {
-    for (auto &foo : arr) {
+    for (auto& foo : arr) {
       benchmark::DoNotOptimize(foo.bar());
     }
   }
@@ -50,7 +50,7 @@ static void BM_FooWithoutCachedBar(benchmark::State& state) {
   auto arr = MakeArr<FooWithoutCachedBar<30>>(1'000'000);
 
   for (auto _ : state) {
-    for (auto &foo : arr) {
+    for (auto& foo : arr) {
       benchmark::DoNotOptimize(foo.bar());
     }
   }

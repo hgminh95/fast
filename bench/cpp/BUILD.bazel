@@ -1,15 +1,31 @@
+load("@rules_cc//cc:cc_binary.bzl", "cc_binary")
 load("//common:bazel.bzl", "bench")
 
 bench(name = "function_call")
+
 bench(name = "static_variable")
+
 bench(name = "string")
+
 bench(name = "signed")
+
 bench(name = "function_chain")
+
 bench(name = "alias")
+
+bench(name = "shared_pointer")
+
+bench(name = "abi")
+
+bench(name = "batch")
+
+bench(name = "pow")
+
+bench(name = "loop_reorder")
 
 cc_binary(
     name = "std_math",
     srcs = [
         "std_math.cpp",
-    ]
+    ],
 )

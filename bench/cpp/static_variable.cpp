@@ -1,8 +1,8 @@
 #include <benchmark/benchmark.h>
 
-#include <thread>
 #include <atomic>
 #include <chrono>
+#include <thread>
 
 struct Adder {
   static inline int a = rand() % 5;

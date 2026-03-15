@@ -1,10 +1,10 @@
 #include <benchmark/benchmark.h>
 
-#include "common/array.h"
-
-#include <thread>
-#include <mutex>
 #include <atomic>
+#include <mutex>
+#include <thread>
+
+#include "common/array.h"
 
 static void BM_SumWithLock(benchmark::State& state) {
   auto arr = MakeArr(1'000'000);
@@ -28,7 +28,7 @@ static void BM_SumWithLock(benchmark::State& state) {
       });
     }
 
-    for (auto &thread : threads) {
+    for (auto& thread : threads) {
       thread.join();
     }
   }
@@ -54,7 +54,7 @@ static void BM_SumWithAtomic(benchmark::State& state) {
       });
     }
 
-    for (auto &thread : threads) {
+    for (auto& thread : threads) {
       thread.join();
     }
   }
@@ -77,7 +77,7 @@ static void BM_SumWithNaiveAtomic(benchmark::State& state) {
       });
     }
 
-    for (auto &thread : threads) {
+    for (auto& thread : threads) {
       thread.join();
     }
   }

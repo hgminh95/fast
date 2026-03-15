@@ -1,5 +1,5 @@
-#include <cmath>
 #include <atomic>
+#include <cmath>
 #include <string>
 
 // bazel run --config opt cpp:std_math -- 1.0000000000000020 1.5000050000000000

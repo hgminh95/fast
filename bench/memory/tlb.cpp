@@ -1,10 +1,10 @@
 #include <benchmark/benchmark.h>
 
-#include "common/array.h"
-
-#include <thread>
 #include <atomic>
 #include <chrono>
+#include <thread>
+
+#include "common/array.h"
 
 template <size_t N>
 static void BM_TlbMiss(benchmark::State& state) {
@@ -35,7 +35,7 @@ static void BM_MultiThread(benchmark::State& state) {
   std::vector<int> arr(100'000'000, 1);
 
   std::atomic<bool> active{true};
-  int *x;
+  int* x;
   std::thread t([&active, &x]() {
     int cnt = 0;
     while (active) {

@@ -1,11 +1,41 @@
 load("//common:bazel.bzl", "bench", "zig_bench")
 
 bench(name = "sorted_array")
+
 bench(name = "modulo")
+
 bench(name = "power_of_two")
+
 bench(name = "dependency")
+
 bench(name = "register")
+
 bench(name = "jump")
+
 bench(name = "store_forwarding")
 
+bench(name = "false_dependency")
+
+bench(name = "pointer_chasing")
+
+bench(name = "async")
+
+zig_bench(name = "sorted_array")
+
+zig_bench(name = "modulo")
+
 zig_bench(name = "power_of_two")
+
+zig_bench(name = "dependency")
+
+zig_bench(name = "register")
+
+zig_bench(name = "jump")
+
+zig_bench(name = "store_forwarding")
+
+zig_bench(name = "false_dependency")
+
+zig_bench(name = "pointer_chasing")
+
+zig_bench(name = "async")
