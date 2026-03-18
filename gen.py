@@ -138,6 +138,22 @@ def _compile_once(no_wip):
         dirs_exist_ok=True,
     )
 
+    _logger.info("Generating sitemap.xml")
+    sitemap_urls = [
+        "https://whichisfaster.dev/",
+        "https://whichisfaster.dev/browse.html",
+        "https://whichisfaster.dev/faq.html",
+        "https://whichisfaster.dev/references.html",
+    ]
+    for q in ctx["questions"]:
+        sitemap_urls.append(f"https://whichisfaster.dev/q/{q['url_id']}.html")
+    with open(os.path.join(config.BUILD_ROOT, "sitemap.xml"), "wt") as f:
+        f.write('<?xml version="1.0" encoding="UTF-8"?>\n')
+        f.write('<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n')
+        for url in sitemap_urls:
+            f.write(f"  <url><loc>{url}</loc></url>\n")
+        f.write("</urlset>\n")
+
 
 @click.command()
 @click.option("--watch", is_flag=True)

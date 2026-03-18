@@ -2,21 +2,45 @@
 <html lang="en" style="color-scheme: dark">
 <head>
   <meta charset="UTF-8">
-  <meta name="keywords" content="C++, performance, verilog, GPU, CPU">
-  <meta name="description" content="A series of questions that compare running speed of 2 code snippets.">
+  <meta name="keywords" content="C++, Zig, performance optimization, benchmark, CPU cache, branch prediction, memory, GPU, FPGA, Verilog">
+  <meta name="description" content="{% block meta_description %}Learn performance optimization through interactive quizzes. Compare C++ and Zig code snippets and discover which runs faster and why.{% endblock %}">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
+  <meta property="og:type" content="website">
+  <meta property="og:site_name" content="Which is Faster?">
+  <meta property="og:title" content="{% block og_title %}Which is Faster? — Learn Performance Optimization Through Quizzes{% endblock %}">
+  <meta property="og:description" content="{% block og_description %}Interactive quizzes to learn CPU, memory, and compiler performance optimization in C++ and Zig.{% endblock %}">
+  <meta property="og:url" content="https://whichisfaster.dev{% block og_url %}/{% endblock %}">
   <meta property="og:image" content="https://whichisfaster.dev/static/og.png">
   <meta property="og:image:width" content="1200">
   <meta property="og:image:height" content="641">
 
-  <title>{% block title %}Which is Faster?{% endblock %}</title>
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="{% block twitter_title %}Which is Faster?{% endblock %}">
+  <meta name="twitter:description" content="{% block twitter_description %}Learn performance optimization through interactive quizzes{% endblock %}">
+  <meta name="twitter:image" content="https://whichisfaster.dev/static/og.png">
+
+  <link rel="canonical" href="https://whichisfaster.dev{% block canonical_url %}/{% endblock %}">
+
+  <title>{% block title %}Which is Faster? — Learn Performance Optimization Through Quizzes{% endblock %}</title>
 
   <script src="https://cdn.tailwindcss.com?plugins=typography"></script>
   <script src="https://kit.fontawesome.com/1903f23563.js" crossorigin="anonymous"></script>
   <link rel="icon" type="image/x-icon" href="/static/favicon.ico">
 
   <link href="/static/prism.css" rel="stylesheet" />
+
+  {% block structured_data %}
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "WebSite",
+    "name": "Which is Faster?",
+    "url": "https://whichisfaster.dev",
+    "description": "Learn performance optimization through interactive quizzes comparing C++ and Zig code snippets."
+  }
+  </script>
+  {% endblock %}
 </head>
 <body class="min-h-screen flex flex-col {% block body_class %}{% endblock %}">
   <header class="sticky top-0 z-50 border-b h-16 bg-black">
@@ -384,7 +408,7 @@ body {
   <footer class="relative pb-[env(safe-area-inset-bottom)] bg-[#111111]">
     <hr class="border-neutral-800"/>
     <div class="w-full md:mx-auto mx-5 max-w-screen-xl md:flex md:items-center md:justify-between mt-2 mb-2">
-      <span class="text-sm sm:text-center text-gray-400">Last Updated at 2025
+      <span class="text-sm sm:text-center text-gray-400">Last Updated at 2026
       </span>
       <ul class="flex flex-wrap items-end text-right mt-3 text-sm font-medium text-gray-400 sm:mt-0">
         <li>

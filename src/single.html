@@ -2,8 +2,32 @@
 
 {% block body_class %}min-h-screen{% endblock %}
 
-{% block title %}
-{{ q.title }}
+{% block title %}{{ q.title }} — Which is Faster?{% endblock %}
+
+{% block meta_description %}{{ q.title }}: Compare two {{ q.topic }} code snippets and find out which one runs faster. Interactive performance optimization quiz with explanation.{% endblock %}
+
+{% block og_title %}{{ q.title }} — Which is Faster?{% endblock %}
+{% block og_description %}Can you tell which {{ q.topic }} code runs faster? Test your performance optimization knowledge.{% endblock %}
+{% block og_url %}/q/{{ q.url_id }}.html{% endblock %}
+{% block canonical_url %}/q/{{ q.url_id }}.html{% endblock %}
+{% block twitter_title %}{{ q.title }} — Which is Faster?{% endblock %}
+{% block twitter_description %}Can you tell which {{ q.topic }} code runs faster?{% endblock %}
+
+{% block structured_data %}
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "Quiz",
+  "name": "{{ q.title }}",
+  "about": {
+    "@type": "Thing",
+    "name": "{{ q.topic }} Performance Optimization"
+  },
+  "educationalLevel": "Advanced",
+  "learningResourceType": "Quiz",
+  "url": "https://whichisfaster.dev/q/{{ q.url_id }}.html"
+}
+</script>
 {% endblock %}
 
 {% block animation %}
