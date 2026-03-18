@@ -51,6 +51,9 @@
           <span class="hidden md:inline">Score:</span>
           <span id="score" class="break-keep text-nowrap">0 / 0</span>
         </span>
+        <button onclick="resetScore()" class="text-gray-500 hover:text-gray-300 transition-colors" title="Reset score">
+          <i class="fa-solid fa-rotate-left text-xs"></i>
+        </button>
         <a href="https://github.com/hgminh95/fast" rel="noreferrer noopener" target="_blank" aria-label="Github" class="inline-flex items-center justify-center rounded-md font-medium transition-colors duration-100 hover:bg-accent hover:text-accent-foreground p-1.5">
           <i class="fa-brands fa-github"></i>
         </a>
@@ -60,7 +63,7 @@
 
   <script>
     const qIds = [
-      {% for q in questions %}"{{ q.url_id }}", {% endfor %}
+      {% for q in questions %}{% if not q.wip %}"{{ q.url_id }}", {% endif %}{% endfor %}
     ];
 
     let solvedProblems = [];
@@ -79,6 +82,12 @@
       const score = document.getElementById("score");
       score.innerHTML = "" + solvedProblems.length + " / " + {{ questions|length }};
     })();
+
+    function resetScore() {
+      if (!confirm("Reset your score? This cannot be undone.")) return;
+      localStorage.setItem("solvedProblems", JSON.stringify([]));
+      location.reload();
+    }
   </script>
   
   <style>
@@ -365,7 +374,7 @@ body {
       </p>
       {% endblock %}
 
-      <div class="container mt-2 px-2">
+      <div class="container mt-1 px-2">
         {% block content %}{% endblock %}
       </div>
     </div>

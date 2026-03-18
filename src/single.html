@@ -10,9 +10,14 @@
 {% endblock %}
 
 {% block page_title %}
-<h1 class="mx-6 mt-4 w-[300px] bg-gradient-to-b bg-clip-text pb-2 text-center text-4xl font-extrabold leading-tight text-transparent from-white to-[#AAAAAA] w-full">
-  {{ q.title }}
-</h1>
+<div class="flex items-center justify-center gap-3 mt-1 pb-1">
+  <h1 class="bg-gradient-to-b bg-clip-text text-center text-3xl font-extrabold leading-tight text-transparent from-white to-[#AAAAAA]">
+    {{ q.title }}
+  </h1>
+  <button id="bookmark-btn" onclick="toggleBookmark('{{ q.url_id }}')" class="text-gray-500 hover:text-yellow-400 transition-colors text-xl" title="Bookmark this question">
+    <i id="bookmark-ico" class="fa-regular fa-bookmark"></i>
+  </button>
+</div>
 {% endblock %}
 {% block content %}
 
@@ -31,14 +36,7 @@
     from { opacity: 0; transform: translateY(10px); }
     to { opacity: 1; transform: translateY(0); }
   }
-  @keyframes confettiBurst {
-    0% { transform: scale(0) rotate(0deg); opacity: 1; }
-    50% { transform: scale(1.2) rotate(180deg); opacity: 0.8; }
-    100% { transform: scale(0) rotate(360deg); opacity: 0; }
-  }
-  .result-label {
-    animation: fadeSlideIn 0.4s ease-out;
-  }
+  .result-label { animation: fadeSlideIn 0.4s ease-out; }
   .code-panel {
     transition: border-color 0.3s ease, box-shadow 0.3s ease, transform 0.2s ease;
     border-radius: 8px;
@@ -57,9 +55,7 @@
     animation: wrongShake 0.5s ease-out;
     border-color: #ef4444 !important;
   }
-  .code-panel.dimmed {
-    opacity: 0.6;
-  }
+  .code-panel.dimmed { opacity: 0.6; }
   .select-btn {
     transition: all 0.2s ease;
     padding: 8px 24px;
@@ -73,190 +69,30 @@
     border-color: rgba(74, 222, 128, 0.4);
     transform: scale(1.02);
   }
-  .select-btn:active {
-    transform: scale(0.98);
+  .select-btn:active { transform: scale(0.98); }
+  .action-btns { animation: fadeSlideIn 0.5s ease-out; }
+  .confetti-particle { position: fixed; pointer-events: none; z-index: 100; border-radius: 2px; }
+  .diff-view {
+    display: block !important;
+    position: relative;
+    white-space: inherit;
+    padding: 0;
+    margin: 0;
+    overflow: visible;
+    color: #ccc;
+    font-family: Consolas, Monaco, 'Andale Mono', 'Ubuntu Mono', monospace;
+    font-size: 1em;
+    line-height: 1.5;
   }
-  .action-btns {
-    animation: fadeSlideIn 0.5s ease-out;
-  }
-  .confetti-particle {
-    position: fixed;
-    pointer-events: none;
-    z-index: 100;
-    border-radius: 2px;
-  }
+  .diff-line { white-space: pre; position: relative; }
+  .diff-num { position: absolute; left: -3.8em; width: 3em; padding-right: 0.8em; text-align: right; color: #999; border-right: 1px solid #999; user-select: none; letter-spacing: -1px; }
+  .diff-prefix { color: #999; user-select: none; }
+  .diff-add { background: rgba(34, 197, 94, 0.12); }
+  .diff-add .diff-prefix { color: #4ade80; }
+  .diff-del { background: rgba(239, 68, 68, 0.12); opacity: 0.7; }
+  .diff-del .diff-prefix { color: #f87171; }
+  .diff-same { }
 </style>
-
-<script>
-  let run_once = false;
-  let answer = {{ q.answer }};
-
-  // Randomize panel order to avoid position bias
-  (function() {
-    if (Math.random() < 0.5) {
-      const container = document.getElementById('code-panels');
-      const panels = Array.from(container.children);
-      container.insertBefore(panels[1], panels[0]);
-      // Swap onclick handlers on the select buttons
-      panels[0].querySelector('.select-btn').setAttribute('onclick', 'select(2)');
-      panels[1].querySelector('.select-btn').setAttribute('onclick', 'select(1)');
-      answer = answer === 1 ? 2 : 1;
-    }
-  })();
-
-  function spawnConfetti() {
-    const colors = ['#4ade80', '#22d3ee', '#a78bfa', '#f472b6', '#fbbf24', '#fb923c'];
-    for (let i = 0; i < 40; i++) {
-      const el = document.createElement('div');
-      el.className = 'confetti-particle';
-      el.style.width = (4 + Math.random() * 6) + 'px';
-      el.style.height = (4 + Math.random() * 6) + 'px';
-      el.style.background = colors[Math.floor(Math.random() * colors.length)];
-      el.style.left = (30 + Math.random() * 40) + 'vw';
-      el.style.top = (20 + Math.random() * 30) + 'vh';
-      document.body.appendChild(el);
-
-      const angle = Math.random() * Math.PI * 2;
-      const speed = 100 + Math.random() * 200;
-      const dx = Math.cos(angle) * speed;
-      const dy = Math.sin(angle) * speed - 150;
-      const rotation = Math.random() * 720 - 360;
-
-      el.animate([
-        { transform: 'translate(0,0) rotate(0deg)', opacity: 1 },
-        { transform: `translate(${dx}px, ${dy + 300}px) rotate(${rotation}deg)`, opacity: 0 }
-      ], { duration: 800 + Math.random() * 600, easing: 'cubic-bezier(0.25, 0.46, 0.45, 0.94)' });
-
-      setTimeout(() => el.remove(), 1500);
-    }
-  }
-
-  function select(choice) {
-    if (run_once) return;
-    run_once = true;
-
-    let explainBtn = document.getElementById("explain-btn");
-    let nextBtn = document.getElementById("next-btn");
-    let randomBtn = document.getElementById("random-btn");
-    let codes = [document.getElementById("code1"), document.getElementById("code2")];
-    let descs = [document.getElementById("desc1"), document.getElementById("desc2")];
-
-    codes[0].classList.add("answered");
-    codes[1].classList.add("answered");
-
-    const isCorrect = choice === answer;
-
-    if (isCorrect) {
-      if (!solvedProblems.includes("{{ q.url_id }}")) {
-        solvedProblems.push("{{ q.url_id }}");
-        localStorage.setItem("solvedProblems", JSON.stringify(solvedProblems));
-        const score = document.getElementById("score");
-        score.innerHTML = "" + solvedProblems.length + " / " + {{ questions|length }};
-      }
-      codes[choice - 1].classList.add("correct");
-      descs[choice - 1].innerHTML = '<i class="fa-solid fa-check mr-1"></i> Correct! {{ q.faster_factor }}x {% if q.topic == "RTL" %}lower latency{% else %}faster{% endif %}';
-      descs[choice - 1].classList.add("text-green-400", "font-bold", "result-label");
-      descs[1 - (choice - 1)].innerHTML = '<i class="fa-solid fa-minus mr-1"></i> {% if q.topic == "RTL" %}Higher latency{% else %}Slower{% endif %}';
-      descs[1 - (choice - 1)].classList.add("text-gray-500", "result-label");
-      codes[1 - (choice - 1)].classList.add("dimmed");
-      spawnConfetti();
-    } else {
-      codes[choice - 1].classList.add("wrong");
-      descs[choice - 1].innerHTML = '<i class="fa-solid fa-xmark mr-1"></i> Wrong! This is {% if q.topic == "RTL" %}higher latency{% else %}slower{% endif %}';
-      descs[choice - 1].classList.add("text-red-400", "font-bold", "result-label");
-      descs[1 - (choice - 1)].innerHTML = '<i class="fa-solid fa-check mr-1"></i> {{ q.faster_factor }}x {% if q.topic == "RTL" %}lower latency{% else %}faster{% endif %}';
-      descs[1 - (choice - 1)].classList.add("text-green-400", "result-label");
-      codes[choice - 1].classList.add("dimmed");
-      codes[1 - (choice - 1)].classList.add("correct");
-    }
-
-    // Show action buttons with stagger
-    setTimeout(() => {
-      explainBtn.style.display = "block";
-      explainBtn.classList.add("action-btns");
-    }, 300);
-    setTimeout(() => {
-      nextBtn.style.display = "block";
-      nextBtn.classList.add("action-btns");
-      randomBtn.style.display = "block";
-      randomBtn.classList.add("action-btns");
-    }, 500);
-
-    while (1) {
-      let randQId = qIds[Math.floor(Math.random() * qIds.length)];
-      if (randQId != "{{ q.url_id }}") {
-        randomBtn.href = "/q/" + randQId + ".html";
-        break;
-      }
-    }
-  }
-
-  function selectLang(lang) {
-    let cppBlocks = document.querySelectorAll('.code-cpp');
-    let zigBlocks = document.querySelectorAll('.code-zig');
-    let cppBtn = document.getElementById('btn-cpp');
-    let zigBtn = document.getElementById('btn-zig');
-    if (!zigBtn) return;
-    localStorage.setItem('preferredLang', lang);
-    if (lang === 'zig') {
-      cppBlocks.forEach(el => el.style.display = 'none');
-      zigBlocks.forEach(el => el.style.display = 'block');
-      cppBtn.classList.remove('bg-green-600', 'text-white', 'border-green-500');
-      cppBtn.classList.add('bg-transparent');
-      zigBtn.classList.add('bg-green-600', 'text-white', 'border-green-500');
-      zigBtn.classList.remove('bg-transparent');
-      zigBlocks.forEach(el => {
-        let code = el.querySelector('code');
-        if (code && !code.dataset.zigHighlighted) {
-          let raw = code.textContent;
-          code.innerHTML = Prism.highlight(raw, Prism.languages.zig, 'zig');
-          // Add line numbers (matching Prism line-numbers plugin)
-          let lines = raw.split('\n');
-          if (lines[lines.length - 1] === '') lines.pop();
-          let spans = lines.map(() => '<span></span>').join('');
-          let lineRows = el.querySelector('.line-numbers-rows');
-          if (!lineRows) {
-            lineRows = document.createElement('span');
-            lineRows.className = 'line-numbers-rows';
-            code.appendChild(lineRows);
-          }
-          lineRows.innerHTML = spans;
-          el.classList.add('line-numbers');
-          code.dataset.zigHighlighted = 'true';
-        }
-      });
-    } else {
-      cppBlocks.forEach(el => el.style.display = 'block');
-      zigBlocks.forEach(el => el.style.display = 'none');
-      cppBtn.classList.add('bg-green-600', 'text-white', 'border-green-500');
-      cppBtn.classList.remove('bg-transparent');
-      zigBtn.classList.remove('bg-green-600', 'text-white', 'border-green-500');
-      zigBtn.classList.add('bg-transparent');
-    }
-  }
-
-  // Restore saved language preference after DOM is ready
-  document.addEventListener('DOMContentLoaded', function() {
-    let saved = localStorage.getItem('preferredLang');
-    if (saved && document.getElementById('btn-zig')) {
-      selectLang(saved);
-    }
-  });
-
-  function toggleExplain() {
-    let explainMd = document.getElementById("explain-md");
-    let explainBtnIco = document.getElementById("explain-btn-ico");
-    if (explainMd.style.display == "none") {
-      explainMd.style.display = "block";
-      explainBtnIco.classList.remove("fa-caret-right");
-      explainBtnIco.classList.add("fa-caret-down");
-    } else {
-      explainMd.style.display = "none";
-      explainBtnIco.classList.remove("fa-caret-down");
-      explainBtnIco.classList.add("fa-caret-right");
-    }
-  }
-</script>
 
 <div class="px-6 space-y-3">
   {% if q.topic == "Memory" or q.topic == "CPU" %}
@@ -275,6 +111,19 @@
     {% endif %}
   </div>
   {% endif %}
+  <div class="flex items-center justify-center gap-2 text-xs">
+    <div class="inline-flex rounded-md shadow-xs border border-gray-700" role="group">
+      <button id="diff-both" type="button" onclick="setDiffMode('both')" class="px-2.5 py-1 font-medium text-white bg-gray-700 rounded-s-lg hover:brightness-125 transition-all" title="Show both snippets">
+        <i class="fa-solid fa-columns"></i>
+      </button>
+      <button id="diff-right" type="button" onclick="setDiffMode('right')" class="px-2.5 py-1 font-medium text-gray-400 bg-transparent border-x border-gray-700 hover:brightness-125 hover:text-white transition-all" title="Diff on right snippet">
+        Diff <i class="fa-solid fa-arrow-right"></i>
+      </button>
+      <button id="diff-left" type="button" onclick="setDiffMode('left')" class="px-2.5 py-1 font-medium text-gray-400 bg-transparent rounded-e-lg hover:brightness-125 hover:text-white transition-all" title="Diff on left snippet">
+        <i class="fa-solid fa-arrow-left"></i> Diff
+      </button>
+    </div>
+  </div>
   <div id="code-panels" class="z-10 flex w-full flex-col items-center justify-center gap-6 sm:mx-0 md:mb-0 lg:!translate-y-0 lg:!flex-row">
     <div id="code1" class="code-panel relative flex h-full w-full max-w-full flex-col items-center border border-gray-700 bg-black pb-3">
       <pre class="code-cpp w-full !mt-0 h-80 text-sm"><code class="language-{% if q.topic == 'RTL' %}verilog{% else %}cpp{% endif %} line-numbers" data-prismjs-copy="Copy">{{ q.code1 }}</code></pre>
@@ -333,4 +182,348 @@
   </div>
 
 </div>
+
+{# === ALL JS goes here, AFTER the HTML === #}
+<script>
+var run_once = false;
+var answer = {{ q.answer }};
+var rawCode1 = {{ q.code1 | tojson }};
+var rawCode2 = {{ q.code2 | tojson }};
+{% if "code1_zig" in q %}
+var rawCode1Zig = {{ q.code1_zig | tojson }};
+var rawCode2Zig = {{ q.code2_zig | tojson }};
+{% else %}
+var rawCode1Zig = '';
+var rawCode2Zig = '';
+{% endif %}
+var currentLang = 'cpp';
+var savedHtml1 = '';
+var savedHtml2 = '';
+var savedClass1 = '';
+var savedClass2 = '';
+
+window.addEventListener('load', function() {
+  // --- Randomize by swapping content (not DOM elements) ---
+  if (Math.random() < 0.5) {
+    // Swap C++ code
+    var c1 = document.querySelector('#code1 .code-cpp code');
+    var c2 = document.querySelector('#code2 .code-cpp code');
+    if (c1 && c2) {
+      var tmpHtml = c1.innerHTML; c1.innerHTML = c2.innerHTML; c2.innerHTML = tmpHtml;
+      var tmpClass = c1.className; c1.className = c2.className; c2.className = tmpClass;
+    }
+    // Swap Zig code
+    var z1 = document.querySelector('#code1 .code-zig code');
+    var z2 = document.querySelector('#code2 .code-zig code');
+    if (z1 && z2) {
+      var tmpHtml = z1.innerHTML; z1.innerHTML = z2.innerHTML; z2.innerHTML = tmpHtml;
+    }
+    // Swap line-numbers-rows
+    var lr1 = document.querySelector('#code1 .code-cpp .line-numbers-rows');
+    var lr2 = document.querySelector('#code2 .code-cpp .line-numbers-rows');
+    if (lr1 && lr2) {
+      var tmpRows = lr1.innerHTML; lr1.innerHTML = lr2.innerHTML; lr2.innerHTML = tmpRows;
+    }
+    // Swap raw code for diff
+    var tmp = rawCode1; rawCode1 = rawCode2; rawCode2 = tmp;
+    if (rawCode1Zig) { var tmp = rawCode1Zig; rawCode1Zig = rawCode2Zig; rawCode2Zig = tmp; }
+    // Flip answer
+    answer = answer === 1 ? 2 : 1;
+  }
+
+  // Save Prism-highlighted HTML
+  var c1 = document.querySelector('#code1 .code-cpp code');
+  var c2 = document.querySelector('#code2 .code-cpp code');
+  if (c1) { savedHtml1 = c1.innerHTML; savedClass1 = c1.className; }
+  if (c2) { savedHtml2 = c2.innerHTML; savedClass2 = c2.className; }
+
+  // Restore saved language preference
+  var saved = localStorage.getItem('preferredLang');
+  if (saved && document.getElementById('btn-zig')) {
+    window.selectLang(saved);
+  }
+});
+
+  // --- Confetti ---
+  function spawnConfetti() {
+    var colors = ['#4ade80', '#22d3ee', '#a78bfa', '#f472b6', '#fbbf24', '#fb923c'];
+    for (var i = 0; i < 40; i++) {
+      var el = document.createElement('div');
+      el.className = 'confetti-particle';
+      el.style.width = (4 + Math.random() * 6) + 'px';
+      el.style.height = (4 + Math.random() * 6) + 'px';
+      el.style.background = colors[Math.floor(Math.random() * colors.length)];
+      el.style.left = (30 + Math.random() * 40) + 'vw';
+      el.style.top = (20 + Math.random() * 30) + 'vh';
+      document.body.appendChild(el);
+      var angle = Math.random() * Math.PI * 2;
+      var speed = 100 + Math.random() * 200;
+      var dx = Math.cos(angle) * speed;
+      var dy = Math.sin(angle) * speed - 150;
+      var rotation = Math.random() * 720 - 360;
+      el.animate([
+        { transform: 'translate(0,0) rotate(0deg)', opacity: 1 },
+        { transform: 'translate('+dx+'px, '+(dy+300)+'px) rotate('+rotation+'deg)', opacity: 0 }
+      ], { duration: 800 + Math.random() * 600, easing: 'cubic-bezier(0.25, 0.46, 0.45, 0.94)' });
+      setTimeout(function(e){ return function(){ e.remove(); } }(el), 1500);
+    }
+  }
+
+  // --- Answer selection ---
+  window.select = function(choice) {
+    if (run_once) return;
+    run_once = true;
+
+    var explainBtn = document.getElementById("explain-btn");
+    var nextBtn = document.getElementById("next-btn");
+    var randomBtn = document.getElementById("random-btn");
+    var codes = [document.getElementById("code1"), document.getElementById("code2")];
+    var descs = [document.getElementById("desc1"), document.getElementById("desc2")];
+
+    codes[0].classList.add("answered");
+    codes[1].classList.add("answered");
+
+    var isCorrect = choice === answer;
+
+    if (isCorrect) {
+      if (!solvedProblems.includes("{{ q.url_id }}")) {
+        solvedProblems.push("{{ q.url_id }}");
+        localStorage.setItem("solvedProblems", JSON.stringify(solvedProblems));
+        var score = document.getElementById("score");
+        score.innerHTML = "" + solvedProblems.length + " / " + {{ questions|length }};
+      }
+      codes[choice - 1].classList.add("correct");
+      descs[choice - 1].innerHTML = '<i class="fa-solid fa-check mr-1"></i> Correct! {{ q.faster_factor }}x {% if q.topic == "RTL" %}lower latency{% else %}faster{% endif %}';
+      descs[choice - 1].classList.add("text-green-400", "font-bold", "result-label");
+      descs[1 - (choice - 1)].innerHTML = '<i class="fa-solid fa-minus mr-1"></i> {% if q.topic == "RTL" %}Higher latency{% else %}Slower{% endif %}';
+      descs[1 - (choice - 1)].classList.add("text-gray-500", "result-label");
+      codes[1 - (choice - 1)].classList.add("dimmed");
+      spawnConfetti();
+    } else {
+      codes[choice - 1].classList.add("wrong");
+      descs[choice - 1].innerHTML = '<i class="fa-solid fa-xmark mr-1"></i> Wrong! This is {% if q.topic == "RTL" %}higher latency{% else %}slower{% endif %}';
+      descs[choice - 1].classList.add("text-red-400", "font-bold", "result-label");
+      descs[1 - (choice - 1)].innerHTML = '<i class="fa-solid fa-check mr-1"></i> {{ q.faster_factor }}x {% if q.topic == "RTL" %}lower latency{% else %}faster{% endif %}';
+      descs[1 - (choice - 1)].classList.add("text-green-400", "result-label");
+      codes[choice - 1].classList.add("dimmed");
+      codes[1 - (choice - 1)].classList.add("correct");
+    }
+
+    setTimeout(function() {
+      explainBtn.style.display = "block";
+      explainBtn.classList.add("action-btns");
+    }, 300);
+    setTimeout(function() {
+      nextBtn.style.display = "block";
+      nextBtn.classList.add("action-btns");
+      randomBtn.style.display = "block";
+      randomBtn.classList.add("action-btns");
+    }, 500);
+
+    while (1) {
+      var randQId = qIds[Math.floor(Math.random() * qIds.length)];
+      if (randQId != "{{ q.url_id }}") {
+        randomBtn.href = "/q/" + randQId + ".html";
+        break;
+      }
+    }
+  };
+
+  // --- Diff logic ---
+  function lcs(a, b) {
+    var m = a.length, n = b.length;
+    var dp = [];
+    for (var i = 0; i <= m; i++) { dp[i] = []; for (var j = 0; j <= n; j++) dp[i][j] = 0; }
+    for (var i = 1; i <= m; i++)
+      for (var j = 1; j <= n; j++)
+        dp[i][j] = a[i-1] === b[j-1] ? dp[i-1][j-1] + 1 : Math.max(dp[i-1][j], dp[i][j-1]);
+    var result = [];
+    var i = m, j = n;
+    while (i > 0 && j > 0) {
+      if (a[i-1] === b[j-1]) { result.unshift({t:'s', l:a[i-1]}); i--; j--; }
+      else if (dp[i-1][j] > dp[i][j-1]) { result.unshift({t:'d', l:a[i-1]}); i--; }
+      else { result.unshift({t:'a', l:b[j-1]}); j--; }
+    }
+    while (i > 0) { result.unshift({t:'d', l:a[i-1]}); i--; }
+    while (j > 0) { result.unshift({t:'a', l:b[j-1]}); j--; }
+    return result;
+  }
+
+  function escHtml(s) {
+    return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  }
+
+  function renderDiff(baseText, otherText) {
+    var baseLines = baseText.trimEnd().split('\n');
+    var otherLines = otherText.trimEnd().split('\n');
+    var diff = lcs(baseLines, otherLines);
+    var langKey = currentLang === 'zig' ? 'zig' : '{% if q.topic == "RTL" %}verilog{% else %}cpp{% endif %}';
+    var lang = Prism.languages[langKey];
+    var lineNum = 0;
+    var html = diff.map(function(d) {
+      var numStr = '';
+      if (d.t === 'd') {
+        numStr = '<span class="diff-num">  </span>';
+      } else {
+        lineNum++;
+        numStr = '<span class="diff-num">' + String(lineNum).padStart(2, ' ') + '</span>';
+      }
+      var highlighted = Prism.highlight(d.l, lang, 'cpp');
+      if (d.t === 's') return '<div class="diff-line diff-same">' + numStr + '<span class="diff-prefix"> </span>' + highlighted + '</div>';
+      if (d.t === 'a') return '<div class="diff-line diff-add">' + numStr + '<span class="diff-prefix">+</span>' + highlighted + '</div>';
+      if (d.t === 'd') return '<div class="diff-line diff-del">' + numStr + '<span class="diff-prefix">-</span>' + highlighted + '</div>';
+    }).join('');
+    return html;
+  }
+
+  function setCodeNormal(codeEl, html, cls) {
+    var pre = codeEl.parentElement;
+    codeEl.innerHTML = html;
+    codeEl.className = cls;
+    pre.classList.add('line-numbers');
+    pre.style.paddingLeft = '';
+    var rows = pre.querySelector('.line-numbers-rows');
+    if (rows) rows.style.display = '';
+  }
+
+  function setCodeDiff(codeEl, diffHtml) {
+    var pre = codeEl.parentElement;
+    codeEl.innerHTML = diffHtml;
+    codeEl.className = 'diff-view';
+    pre.classList.remove('line-numbers');
+    pre.style.paddingLeft = '3.8em';
+    var rows = pre.querySelector('.line-numbers-rows');
+    if (rows) rows.style.display = 'none';
+  }
+
+  var savedHtml1Zig = '', savedHtml2Zig = '', savedClass1Zig = '', savedClass2Zig = '';
+
+  window.setDiffMode = function(mode) {
+    var selector = currentLang === 'zig' ? '.code-zig code' : '.code-cpp code';
+    var code1El = document.querySelector('#code1 ' + selector);
+    var code2El = document.querySelector('#code2 ' + selector);
+    if (!code1El || !code2El) return;
+
+    if (currentLang === 'zig') {
+      if (!savedHtml1Zig) { savedHtml1Zig = code1El.innerHTML; savedClass1Zig = code1El.className; }
+      if (!savedHtml2Zig) { savedHtml2Zig = code2El.innerHTML; savedClass2Zig = code2El.className; }
+    } else {
+      if (!savedHtml1) { savedHtml1 = code1El.innerHTML; savedClass1 = code1El.className; }
+      if (!savedHtml2) { savedHtml2 = code2El.innerHTML; savedClass2 = code2El.className; }
+    }
+
+    var sH1 = currentLang === 'zig' ? savedHtml1Zig : savedHtml1;
+    var sH2 = currentLang === 'zig' ? savedHtml2Zig : savedHtml2;
+    var sC1 = currentLang === 'zig' ? savedClass1Zig : savedClass1;
+    var sC2 = currentLang === 'zig' ? savedClass2Zig : savedClass2;
+    var rC1 = currentLang === 'zig' ? rawCode1Zig : rawCode1;
+    var rC2 = currentLang === 'zig' ? rawCode2Zig : rawCode2;
+
+    var btns = [document.getElementById('diff-both'), document.getElementById('diff-right'), document.getElementById('diff-left')];
+    btns.forEach(function(b) {
+      b.classList.remove('bg-gray-700', 'text-white');
+      b.classList.add('bg-transparent', 'text-gray-400');
+    });
+
+    if (mode === 'both') {
+      setCodeNormal(code1El, sH1, sC1);
+      setCodeNormal(code2El, sH2, sC2);
+      btns[0].classList.add('bg-gray-700', 'text-white'); btns[0].classList.remove('bg-transparent', 'text-gray-400');
+    } else if (mode === 'right') {
+      setCodeNormal(code1El, sH1, sC1);
+      setCodeDiff(code2El, renderDiff(rC1, rC2));
+      btns[1].classList.add('bg-gray-700', 'text-white'); btns[1].classList.remove('bg-transparent', 'text-gray-400');
+    } else if (mode === 'left') {
+      setCodeDiff(code1El, renderDiff(rC2, rC1));
+      setCodeNormal(code2El, sH2, sC2);
+      btns[2].classList.add('bg-gray-700', 'text-white'); btns[2].classList.remove('bg-transparent', 'text-gray-400');
+    }
+  };
+
+  // --- Language toggle ---
+  window.selectLang = function(lang) {
+    var cppBlocks = document.querySelectorAll('.code-cpp');
+    var zigBlocks = document.querySelectorAll('.code-zig');
+    var cppBtn = document.getElementById('btn-cpp');
+    var zigBtn = document.getElementById('btn-zig');
+    if (!zigBtn) return;
+    localStorage.setItem('preferredLang', lang);
+    currentLang = lang;
+    // Reset diff mode when switching language
+    window.setDiffMode('both');
+    if (lang === 'zig') {
+      cppBlocks.forEach(function(el) { el.style.display = 'none'; });
+      zigBlocks.forEach(function(el) { el.style.display = 'block'; });
+      cppBtn.classList.remove('bg-green-600', 'text-white', 'border-green-500');
+      cppBtn.classList.add('bg-transparent');
+      zigBtn.classList.add('bg-green-600', 'text-white', 'border-green-500');
+      zigBtn.classList.remove('bg-transparent');
+      zigBlocks.forEach(function(el) {
+        var code = el.querySelector('code');
+        if (code && !code.dataset.zigHighlighted) {
+          var raw = code.textContent;
+          code.innerHTML = Prism.highlight(raw, Prism.languages.zig, 'zig');
+          var lines = raw.split('\n');
+          if (lines[lines.length - 1] === '') lines.pop();
+          var spans = lines.map(function() { return '<span></span>'; }).join('');
+          var lineRows = el.querySelector('.line-numbers-rows');
+          if (!lineRows) {
+            lineRows = document.createElement('span');
+            lineRows.className = 'line-numbers-rows';
+            code.appendChild(lineRows);
+          }
+          lineRows.innerHTML = spans;
+          el.classList.add('line-numbers');
+          code.dataset.zigHighlighted = 'true';
+        }
+      });
+    } else {
+      cppBlocks.forEach(function(el) { el.style.display = 'block'; });
+      zigBlocks.forEach(function(el) { el.style.display = 'none'; });
+      cppBtn.classList.add('bg-green-600', 'text-white', 'border-green-500');
+      cppBtn.classList.remove('bg-transparent');
+      zigBtn.classList.remove('bg-green-600', 'text-white', 'border-green-500');
+      zigBtn.classList.add('bg-transparent');
+    }
+  };
+
+  // --- Explain toggle ---
+  window.toggleExplain = function() {
+    var explainMd = document.getElementById("explain-md");
+    var explainBtnIco = document.getElementById("explain-btn-ico");
+    if (explainMd.style.display == "none") {
+      explainMd.style.display = "block";
+      explainBtnIco.classList.remove("fa-caret-right");
+      explainBtnIco.classList.add("fa-caret-down");
+    } else {
+      explainMd.style.display = "none";
+      explainBtnIco.classList.remove("fa-caret-down");
+      explainBtnIco.classList.add("fa-caret-right");
+    }
+  };
+
+  // --- Bookmark ---
+  window.toggleBookmark = function(qId) {
+    var bookmarks = JSON.parse(localStorage.getItem('bookmarks') || '[]');
+    var idx = bookmarks.indexOf(qId);
+    var ico = document.getElementById('bookmark-ico');
+    if (idx === -1) {
+      bookmarks.push(qId);
+      ico.className = 'fa-solid fa-bookmark text-yellow-400';
+    } else {
+      bookmarks.splice(idx, 1);
+      ico.className = 'fa-regular fa-bookmark';
+    }
+    localStorage.setItem('bookmarks', JSON.stringify(bookmarks));
+  };
+
+  // Restore bookmark state
+  (function() {
+    var bookmarks = JSON.parse(localStorage.getItem('bookmarks') || '[]');
+    if (bookmarks.indexOf('{{ q.url_id }}') !== -1) {
+      var ico = document.getElementById('bookmark-ico');
+      ico.className = 'fa-solid fa-bookmark text-yellow-400';
+    }
+  })();
+</script>
 {% endblock %}

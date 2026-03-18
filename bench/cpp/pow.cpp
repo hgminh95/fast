@@ -2,40 +2,37 @@
 
 #include <cmath>
 
-static void BM_PowInteger(benchmark::State& state) {
+// pow() runtime varies depending on input values.
+// When the result is a subnormal (denormalized) number, pow takes a slow path.
+
+static void BM_PowNormal(benchmark::State& state) {
+  volatile double x = 7.3;
+  volatile double y = 4.1;
+
   for (auto _ : state) {
     double sum = 0;
-    for (int i = 1; i < 100'000; ++i) {
-      sum += std::pow(static_cast<double>(i), 4.0);
+    for (int i = 0; i < 1'000'000; ++i) {
+      sum += std::pow(x, y);
     }
     benchmark::DoNotOptimize(sum);
   }
 }
 
-static void BM_PowNonInteger(benchmark::State& state) {
+static void BM_PowSlow(benchmark::State& state) {
+  // Result is subnormal: triggers slow path in pow
+  volatile double x = 1e-300;
+  volatile double y = 1.1;
+
   for (auto _ : state) {
     double sum = 0;
-    for (int i = 1; i < 100'000; ++i) {
-      sum += std::pow(static_cast<double>(i), 4.5);
+    for (int i = 0; i < 1'000'000; ++i) {
+      sum += std::pow(x, y);
     }
     benchmark::DoNotOptimize(sum);
   }
 }
 
-static void BM_ManualPow4(benchmark::State& state) {
-  for (auto _ : state) {
-    double sum = 0;
-    for (int i = 1; i < 100'000; ++i) {
-      double x = static_cast<double>(i);
-      double x2 = x * x;
-      sum += x2 * x2;
-    }
-    benchmark::DoNotOptimize(sum);
-  }
-}
-
-BENCHMARK(BM_PowInteger);
-BENCHMARK(BM_PowNonInteger);
-BENCHMARK(BM_ManualPow4);
+BENCHMARK(BM_PowNormal);
+BENCHMARK(BM_PowSlow);
 
 BENCHMARK_MAIN();

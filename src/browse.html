@@ -20,6 +20,7 @@
     {% endif %}
     <a href="/q/{{ q.url_id }}.html" class="group flex items-center justify-between px-4 py-3 rounded-lg border border-transparent hover:border-gray-700 hover:bg-gray-800/60 transition-all cursor-pointer">
       <div class="flex items-center gap-3">
+        <span id="{{ q.url_id }}.bookmark" style="display: none" class="text-yellow-400"><i class="fa-solid fa-bookmark"></i></span>
         <span class="text-gray-300 group-hover:text-white transition-colors">{{ q.title }}</span>
         {% if q.wip %}
         <span class="text-xs px-2 py-0.5 rounded-full bg-yellow-900/50 text-yellow-500 border border-yellow-800">WIP</span>
@@ -40,10 +41,14 @@
 
 <script>
   (function() {
+    var bookmarks = JSON.parse(localStorage.getItem('bookmarks') || '[]');
     {% for q in questions %}
     if (solvedProblems.includes("{{ q.url_id }}")) {
       document.getElementById("{{ q.url_id }}.solved").style.display = "inline";
       document.getElementById("{{ q.url_id }}.try").style.display = "none";
+    }
+    if (bookmarks.indexOf("{{ q.url_id }}") !== -1) {
+      document.getElementById("{{ q.url_id }}.bookmark").style.display = "inline";
     }
     {% endfor %}
   })();

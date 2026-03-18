@@ -5,23 +5,28 @@
 #include <random>
 #include <vector>
 
-static void BM_OneChain(benchmark::State& state) {
-  constexpr int N = 100'000;
-  std::vector<int> arr(N);
+constexpr int N = 100'000;
 
-  std::vector<int> indices(N);
+static std::vector<int> makeChain(uint64_t seed, int size) {
+  std::vector<int> arr(size);
+  std::vector<int> indices(size);
   std::iota(indices.begin(), indices.end(), 0);
-  std::mt19937 rng(42);
+  std::mt19937 rng(seed);
   std::shuffle(indices.begin(), indices.end(), rng);
-
-  for (int i = 0; i < N - 1; ++i) {
+  for (int i = 0; i < size - 1; ++i) {
     arr[indices[i]] = indices[i + 1];
   }
-  arr[indices[N - 1]] = indices[0];
+  arr[indices[size - 1]] = indices[0];
+  return arr;
+}
+
+// One chain of N pointer chases (serialized, one cache miss at a time)
+static void BM_OneChain(benchmark::State& state) {
+  auto arr = makeChain(42, N);
 
   for (auto _ : state) {
     int sum = 0;
-    int p = indices[0];
+    int p = 0;
     for (int i = 0; i < N; ++i) {
       p = arr[p];
       sum += p;
@@ -30,28 +35,15 @@ static void BM_OneChain(benchmark::State& state) {
   }
 }
 
+// Two chains of N/2 pointer chases each (interleaved, two cache misses in flight)
 static void BM_TwoChains(benchmark::State& state) {
-  constexpr int N = 100'000;
-  std::vector<int> arr1(N), arr2(N);
-
-  std::vector<int> idx1(N), idx2(N);
-  std::iota(idx1.begin(), idx1.end(), 0);
-  std::iota(idx2.begin(), idx2.end(), 0);
-  std::mt19937 rng1(42), rng2(123);
-  std::shuffle(idx1.begin(), idx1.end(), rng1);
-  std::shuffle(idx2.begin(), idx2.end(), rng2);
-
-  for (int i = 0; i < N - 1; ++i) {
-    arr1[idx1[i]] = idx1[i + 1];
-    arr2[idx2[i]] = idx2[i + 1];
-  }
-  arr1[idx1[N - 1]] = idx1[0];
-  arr2[idx2[N - 1]] = idx2[0];
+  auto arr1 = makeChain(42, N / 2);
+  auto arr2 = makeChain(123, N / 2);
 
   for (auto _ : state) {
     int sum = 0;
-    int p1 = idx1[0], p2 = idx2[0];
-    for (int i = 0; i < N; ++i) {
+    int p1 = 0, p2 = 0;
+    for (int i = 0; i < N / 2; ++i) {
       p1 = arr1[p1];
       p2 = arr2[p2];
       sum += p1 + p2;

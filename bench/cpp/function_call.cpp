@@ -1,74 +1,78 @@
 #include <benchmark/benchmark.h>
 
-#include <atomic>
-#include <chrono>
-#include <thread>
+#include <memory>
+#include <random>
+#include <vector>
 
 struct Base {
-  __attribute__((noinline)) virtual int AddVirt(int a, int b) noexcept = 0;
+  virtual int Compute(int a, int b) noexcept = 0;
+  virtual ~Base() = default;
 };
 
-struct Adder : public Base {
-  __attribute__((always_inline)) int AddInline(int a, int b) { return a + b; }
-
-  __attribute__((noinline)) int Add(int a, int b) noexcept {
-    asm("endbr64");
-    return a + b;
+struct Impl1 : public Base {
+  __attribute__((noinline)) int Compute(int a, int b) noexcept override {
+    return (a * 3 + b * 7) ^ (a - b);
   }
-
-  __attribute__((noinline)) int AddVirt(int a, int b) noexcept override { return a + b; }
 };
 
-__attribute__((noinline)) int Add(int a, int b) noexcept {
-  asm("endbr64");
-  return a + b;
-}
-
-std::vector<int> MakeArr() {
-  srand(time(NULL));
-
-  std::vector<int> arr(1'000'000);
-  for (auto& x : arr) {
-    x = rand() % 256;
+struct Impl2 : public Base {
+  __attribute__((noinline)) int Compute(int a, int b) noexcept override {
+    return (a * 3 + b * 7) ^ (a - b);
   }
+};
 
-  return arr;
+__attribute__((noinline)) int ComputeFn(int a, int b) noexcept { return (a * 3 + b * 7) ^ (a - b); }
+
+__attribute__((always_inline)) inline int ComputeInline(int a, int b) {
+  return (a * 3 + b * 7) ^ (a - b);
 }
 
 static void BM_InlineFunction(benchmark::State& state) {
-  auto arr = MakeArr();
+  std::vector<int> arr(1'000'000);
+  std::mt19937 rng(42);
+  for (auto& x : arr) x = rng() % 256;
 
   for (auto _ : state) {
-    int sum{0};
-    Adder adder;
+    int sum = 0;
     for (auto i = 0u; i < arr.size(); ++i) {
-      sum = adder.AddInline(sum, arr[i]);
+      sum = ComputeInline(sum, arr[i]);
     }
     benchmark::DoNotOptimize(sum);
   }
 }
 
 static void BM_Function(benchmark::State& state) {
-  auto arr = MakeArr();
+  std::vector<int> arr(1'000'000);
+  std::mt19937 rng(42);
+  for (auto& x : arr) x = rng() % 256;
 
   for (auto _ : state) {
-    int sum{0};
-    // Adder adder;
+    int sum = 0;
     for (auto i = 0u; i < arr.size(); ++i) {
-      sum = Add(sum, arr[i]);
+      sum = ComputeFn(sum, arr[i]);
     }
     benchmark::DoNotOptimize(sum);
   }
 }
 
 static void BM_VirtualFunction(benchmark::State& state) {
-  auto arr = MakeArr();
+  std::vector<int> arr(1'000'000);
+  std::mt19937 rng(42);
+  for (auto& x : arr) x = rng() % 256;
+
+  // Randomly mix two derived types to prevent branch prediction of vtable
+  std::vector<std::unique_ptr<Base>> callers(64);
+  for (size_t i = 0; i < callers.size(); ++i) {
+    if (rng() % 2)
+      callers[i] = std::make_unique<Impl1>();
+    else
+      callers[i] = std::make_unique<Impl2>();
+  }
 
   for (auto _ : state) {
-    int sum{0};
-    Base* adder = new Adder();
+    int sum = 0;
     for (auto i = 0u; i < arr.size(); ++i) {
-      sum = adder->AddVirt(sum, arr[i]);
+      sum = callers[i % callers.size()]->Compute(sum, arr[i]);
     }
     benchmark::DoNotOptimize(sum);
   }

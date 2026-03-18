@@ -167,18 +167,20 @@ questions:
       arr[i] = i;
     }
   answer: 1
-  faster_factor: 1
+  faster_factor: 7.1
   code_url: https://github.com/hgminh95/fast/blob/main/bench/memory/page.cpp
   machine: AMD Ryzen 9
   explain: |
-    First time you access a page, it will trigger a minor page fault, that could be
-    a bit slower. Zero-initialize the memory region will trigger the minor page
-    fault, to make subsequent access faster.
+    The first time you access a page, it triggers a minor page fault. The OS must find a
+    physical frame, zero it, and update the page table. This is expensive — each fault takes
+    microseconds.
 
-    Beside `std::fill`, you can use `bzero` or `explicit_bzero`.
+    Pre-touching the memory (e.g., with `memset`) triggers all page faults upfront, outside
+    the measured section. Subsequent access is fast since the pages are already mapped.
 
-    Note: on some CPUs and kernel configurations, the effect is negligible as the OS
-    may pre-fault pages or handle faults very efficiently.
+    The effect is most visible with `MADV_NOHUGEPAGE` (disabling transparent huge pages).
+    With THP enabled, the OS maps 2MB pages instead of 4KB, reducing fault count by 512x
+    and making the overhead less noticeable.
 
         $ perf stat -e page-faults,minor-faults bazel-bin/memory/page
 
@@ -473,7 +475,7 @@ questions:
         local += 1;
     }
     _ = counter.fetchAdd(local, .monotonic);
-- title: Mutex
+- title: Atomic Contention
   topic: Memory
   code1: |
     std::vector<std::thread> threads;
@@ -509,9 +511,13 @@ questions:
   machine: AMD Ryzen 9
   code_url: https://github.com/hgminh95/fast/blob/main/bench/memory/lock.cpp
   explain: |
-    Lock-free atomic operations do not mean they are free. Under the hood, works need to be done whenever 2 cores read/write to the same cache line.
+    Lock-free atomic operations do not mean they are free. Under the hood, work needs to be
+    done whenever 2 cores read/write to the same cache line.
 
-    In the 2nd example, the contention is much higher since we read/modify sum on every iteration, while in the first one, it is only done 4 times, 1 in each thread. That's to show atomic, if not used properly could lead to degradation in performance.
+    In the 2nd example, every thread atomically updates `sum` on every iteration, causing
+    constant cache line bouncing between cores. In the 1st example, each thread accumulates
+    locally and only does one atomic update at the end, reducing cross-core traffic by orders
+    of magnitude.
 
     To detect cache line contention, you can use `perf c2c`.
 
@@ -866,12 +872,20 @@ questions:
 - title: Mooore Write
   topic: Memory
   code1: |
-    // arr is 1M cache-line-sized (64 byte) elements
+    struct alignas(64) CacheLine {
+      char data[64];
+    };
+    std::vector<CacheLine> arr(1'000'000);
+
     for (int i = 0; i < N; ++i) {
       arr[i].data[0] = i;
     }
   code2: |
-    // arr is 1M cache-line-sized (64 byte) elements
+    struct alignas(64) CacheLine {
+      char data[64];
+    };
+    std::vector<CacheLine> arr(1'000'000);
+
     for (int i = 0; i < N; ++i) {
       memset(&arr[i], i, 64);
     }
@@ -1313,44 +1327,44 @@ questions:
 - title: Register Spill
   topic: CPU
   code1: |
-    // arr.size == 1'000'000
-    constexpr int N = 4;
+    // arr has 1M doubles
+    constexpr int N = 14;
 
+    double sums[N] = {1.0, ...};
     for (auto i = 0u; i < arr.size(); i += N) {
-      for (int j = 0; j < N; ++j) {
-        sum += arr[i + j] * (i + j);
-      }
+      for (int j = 0; j < N; ++j)
+        sums[j] = sums[j] * 1.01 + arr[i + j];
     }
   code2: |
-    // arr.size == 1'000'000
-    constexpr int N = 8;
+    // arr has 1M doubles
+    constexpr int N = 16;
 
+    double sums[N] = {1.0, ...};
     for (auto i = 0u; i < arr.size(); i += N) {
-      for (int j = 0; j < N; ++j) {
-        sum += arr[i + j] * (i + j);
-      }
+      for (int j = 0; j < N; ++j)
+        sums[j] = sums[j] * 1.01 + arr[i + j];
     }
-  answer: 2
-  faster_factor: 1.44
+  answer: 1
+  faster_factor: 1.63
   machine: AMD Ryzen 9
   code_url: https://github.com/hgminh95/fast/blob/main/bench/cpu/register.cpp
   explain: |
-    Unrolling a loop with more iterations per step gives the CPU more independent operations
-    to execute in parallel (instruction-level parallelism). With N=8, there are 8 multiply-add
-    operations that can be pipelined, keeping more execution units busy.
+    Both codes run N independent hash chains over the same data. With N=14,
+    all accumulators fit in the 16 SSE/AVX registers (xmm0-xmm15), with a couple
+    spare for temporaries. With N=16, all registers are occupied and the compiler
+    must spill some values to the stack between iterations.
 
-    However, if the unroll factor is too large, the compiler needs more registers to hold
-    intermediate values. When it runs out (x86-64 has ~16 general-purpose registers), values
-    "spill" to the stack, adding memory operations. The optimal unroll factor depends on
-    the computation complexity and the number of available registers.
+    Each spill adds a store + load through L1 cache (~4-5 cycle penalty), which
+    compounds over millions of iterations. The performance cliff is sharp: just
+    2 more accumulators causes a 1.6x slowdown.
 
-    Note: with vectorization enabled, the compiler may auto-vectorize and the optimal N
-    changes. This benchmark disables vectorization to isolate the scalar register pressure effect.
+    This is why high-performance inner loops (BLAS, codecs, crypto) are carefully
+    tuned to use exactly as many registers as available — no more, no fewer.
 
     References:
 
     - [Wikipedia - Register Allocation](https://en.wikipedia.org/wiki/Register_allocation)
-    - [Wikipedia - Loop Unrolling](https://en.wikipedia.org/wiki/Loop_unrolling)
+    - [Agner Fog - Optimizing Software](https://www.agner.org/optimize/optimizing_cpp.pdf)
   code1_zig: |
     // arr.len == 1'000'000
     const N = 4;
@@ -1556,31 +1570,38 @@ questions:
 - title: Async
   topic: CPU
   code1: |
+    // N pointer chases in one chain
     int p = start;
     for (int i = 0; i < N; ++i) {
       p = arr[p];
       sum += p;
     }
   code2: |
+    // N pointer chases split into two N/2 chains
     int p1 = start1, p2 = start2;
-    for (int i = 0; i < N; ++i) {
+    for (int i = 0; i < N / 2; ++i) {
       p1 = arr1[p1];
       p2 = arr2[p2];
       sum += p1 + p2;
     }
   answer: 2
-  faster_factor: 1.3
+  faster_factor: 2
   machine: AMD Ryzen 9
   code_url: https://github.com/hgminh95/fast/blob/main/bench/cpu/async.cpp
   explain: |
-    Modern CPUs can have multiple outstanding memory requests in flight simultaneously. This is
-    called Memory-Level Parallelism (MLP). A single pointer chase chain can only have one
-    outstanding cache miss at a time (since each load depends on the previous one).
+    Both codes perform N total random pointer chases — the same amount of work.
+    The first uses one long chain: each load depends on the previous, so the CPU
+    can only have one cache miss in flight at a time (~100ns waiting per miss).
 
-    With two independent chains, the CPU can issue loads from both chains simultaneously,
-    overlapping the latency. In theory, two chains should take the same wall time as one chain,
-    effectively doubling throughput. In practice, the benefit depends on the number of Line Fill
-    Buffers (LFBs) available and cache interference between the chains.
+    The second splits the work into two independent half-chains. Since `p1` and `p2`
+    don't depend on each other, the CPU can issue both loads simultaneously using
+    Memory-Level Parallelism (MLP). Two cache misses overlap, effectively halving
+    the total latency.
+
+    Modern CPUs have 10-20 Line Fill Buffers (LFBs) that can track outstanding
+    cache misses in parallel. A single pointer chain can only use one at a time.
+    Splitting into K independent chains can use up to K LFBs, giving up to Kx speedup
+    (limited by memory bandwidth).
 
     References:
 
@@ -1603,15 +1624,15 @@ questions:
 - title: Inline vs Function Call
   topic: C++
   code1: |
-    __attribute__(always_inline) int foo(int x, int y) {
-      return x + y;
+    __attribute__(always_inline) int foo(int a, int b) {
+      return (a * 3 + b * 7) ^ (a - b);
     }
   code2: |
-    __attribute__(noinline) int foo(int x, int y) {
-      return x + y;
+    __attribute__(noinline) int foo(int a, int b) {
+      return (a * 3 + b * 7) ^ (a - b);
     }
   answer: 1
-  faster_factor: '4.7'
+  faster_factor: '2'
   machine: AMD Ryzen 9
   code_url: https://github.com/hgminh95/fast/blob/main/bench/cpp/function_call.cpp
   explain: |
@@ -1640,35 +1661,46 @@ questions:
 - title: Function Call vs Virtual Function Call
   topic: C++
   code1: |
-    __attribute__((noinline)) int Add(int a, int b) {
-      return a + b;
+    __attribute__((noinline))
+    int Compute(int a, int b) {
+      return (a * 3 + b * 7) ^ (a - b);
+    }
+
+    for (auto i = 0u; i < arr.size(); ++i) {
+      sum = Compute(sum, arr[i]);
     }
   code2: |
     struct Base {
-      virtual int Add(int a, int b) = 0;
+      virtual int Compute(int a, int b) = 0;
     };
-    struct Adder : public Base {
-      int Add(int a, int b) override {
-        return a + b;
-      }
-    };
+
+    Base* impl = GetImpl(); // not known at compile time
+
+    for (auto i = 0u; i < arr.size(); ++i) {
+      sum = impl->Compute(sum, arr[i]);
+    }
   answer: 1
-  faster_factor: '1'
+  faster_factor: '4'
   machine: AMD Ryzen 9
   code_url: https://github.com/hgminh95/fast/blob/main/bench/cpp/function_call.cpp
   explain: |
-    Surprisingly, virtual function calls can be nearly as fast as regular function calls on
-    modern CPUs. The vtable lookup adds an extra level of indirection, but with only one derived
-    type, the CPU's branch predictor quickly learns the target address.
+    A virtual function call requires an indirect call through the vtable: load the
+    vtable pointer, load the function pointer, then call it. A regular (non-virtual)
+    function call jumps directly to a known address.
 
-    The real cost of virtual functions is not the indirect call itself, but:
+    With a single derived type, the CPU's branch predictor can learn the vtable target
+    and the overhead is small. But with multiple implementations dispatched at runtime
+    (which is the common case for polymorphism), the indirect call becomes unpredictable,
+    causing pipeline flushes on each misprediction (~15-20 cycles).
 
-    - **Inlining prevention**: virtual calls cannot be inlined (unless devirtualized by the compiler)
-    - **Cache pressure**: the vtable pointer adds 8 bytes per object
-    - **Optimization barriers**: the compiler cannot see through the indirection to optimize
+    The key cost of virtual functions is not the vtable lookup itself, but:
 
-    The benchmarked difference is negligible because both `noinline` function and virtual call
-    pay the same call overhead. The key takeaway: prefer inlining over worrying about virtual vs non-virtual.
+    - **Branch misprediction** on the indirect call when multiple types are used
+    - **Inlining prevention** — the compiler cannot see through the indirection
+    - **Optimization barriers** — no constant propagation or dead code elimination
+
+    Note: the benchmark uses multiple derived types to simulate realistic polymorphic
+    dispatch. With only one type, the CPU predicts perfectly and the overhead vanishes.
 
     References:
 
@@ -1963,42 +1995,61 @@ questions:
 - title: pow
   topic: C++
   code1: |
-    for (int i = 1; i < 100'000; ++i) {
-      double x = static_cast<double>(i);
-      double x2 = x * x;
-      sum += x2 * x2;  // x^4 manually
+    double x = 7.3;
+    double y = 4.1;
+
+    for (int i = 0; i < 1'000'000; ++i) {
+      sum += std::pow(x, y);
     }
   code2: |
-    for (int i = 1; i < 100'000; ++i) {
-      sum += std::pow(static_cast<double>(i), 4.0);
+    double x = 1e-300;
+    double y = 1.1;
+
+    for (int i = 0; i < 1'000'000; ++i) {
+      sum += std::pow(x, y);
     }
   answer: 1
-  faster_factor: '11.9'
+  faster_factor: '3.7'
   machine: AMD Ryzen 9
   code_url: https://github.com/hgminh95/fast/blob/main/bench/cpp/pow.cpp
   explain: |
-    `std::pow` is a general-purpose function that handles arbitrary exponents, including
-    fractional and negative values. For integer exponents, this generality adds unnecessary
-    overhead - it typically uses `exp(y * log(x))` internally.
+    `std::pow` does not run in constant time. Its runtime depends on the input values.
 
-    Manual multiplication for small integer powers (x*x, x*x*x, x*x*x*x) compiles to a
-    few `mulsd` instructions, which is dramatically faster than calling `pow()`.
+    When the result is a [subnormal number](https://en.wikipedia.org/wiki/Denormal_number)
+    (very small, below `DBL_MIN` ≈ 2.2e-308), the CPU and math library must handle
+    denormalized floating-point arithmetic, which is significantly slower:
 
-    Most compilers will optimize `std::pow(x, 2.0)` to `x * x`, but may not optimize
-    higher integer powers. If you know the exponent at compile time, manual multiplication
-    or a template-based power function is much faster.
+    - **CPU penalty**: subnormal operations can be 10-100x slower on some microarchitectures
+      because the hardware fast path only handles normalized floats
+    - **Library penalty**: `pow` internally uses `exp(y * log(x))`, and both `log` and `exp`
+      have slow paths for subnormal inputs/outputs
+
+    With `x = 1e-300` and `y = 1.1`, the result is `~1e-330` which is subnormal, triggering
+    both penalties.
+
+    This matters in scientific computing where values can span many orders of magnitude.
+    The fix is to clamp inputs away from subnormal ranges, or use `-ffast-math` which
+    may flush subnormals to zero (`-ftz`).
 
     References:
 
-    - [slowpow](https://entropymine.com/imageworsener/slowpow/)
-    - [GCC Bug - pow optimization](https://gcc.gnu.org/bugzilla/show_bug.cgi?id=43165)
+    - [Wikipedia - Denormal Number](https://en.wikipedia.org/wiki/Denormal_number)
+    - [Intel - Denormals Are Zeros](https://www.intel.com/content/www/us/en/developer/articles/technical/x87-and-sse-floating-point-assists-in-ia-32-flush-to-zero-ftz-and-denormals-are-zero-daz.html)
 - title: Loop Reordering
   topic: C++
   code1: |
+    constexpr int ROWS = 1000, COLS = 1000;
+    std::vector<std::vector<int>> matrix(
+        ROWS, std::vector<int>(COLS, 1));
+
     for (int i = 0; i < ROWS; ++i)
       for (int j = 0; j < COLS; ++j)
         sum += matrix[i][j];
   code2: |
+    constexpr int ROWS = 1000, COLS = 1000;
+    std::vector<std::vector<int>> matrix(
+        ROWS, std::vector<int>(COLS, 1));
+
     for (int j = 0; j < COLS; ++j)
       for (int i = 0; i < ROWS; ++i)
         sum += matrix[i][j];
