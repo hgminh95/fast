@@ -1,62 +1,64 @@
 #include <benchmark/benchmark.h>
 
-#include <atomic>
-#include <chrono>
-#include <thread>
+#include <cstdlib>
+#include <vector>
 
-#include "common/array.h"
-
-template <size_t N>
-struct FooWithCachedBar {
-  int values[N];
-  int cached_bar{0};
-
-  int bar() {
-    if (cached_bar == 0) {
-      for (int i = 0; i < N; ++i) {
-        cached_bar += values[i] * i;
-      }
-    }
-
-    return cached_bar;
-  }
+struct WithCache {
+  int input;
+  int cached_result;
 };
 
-template <size_t N>
-struct FooWithoutCachedBar {
-  int values[N];
+struct WithoutCache {
+  int input;
+};
 
-  int bar() {
-    int res{0};
+inline int compute(int x) {
+  x = x * 7 + 13;
+  x = x ^ (x >> 3);
+  x = x * 31 + 7;
+  x = x ^ (x >> 5);
+  x = x * 127 + 63;
+  x = x ^ (x >> 7);
+  x = x * 17 + 5;
+  return x;
+}
+
+static void BM_ReadCached(benchmark::State& state) {
+  constexpr int N = 10'000'000;
+  std::vector<WithCache> arr(N);
+  srand(42);
+  for (auto& e : arr) {
+    e.input = rand() % 1000;
+    e.cached_result = compute(e.input);
+  }
+
+  for (auto _ : state) {
+    int sum = 0;
     for (int i = 0; i < N; ++i) {
-      res += values[i] * i;
+      sum += arr[i].cached_result;
     }
-
-    return res;
-  }
-};
-
-static void BM_FooWithCachedBar(benchmark::State& state) {
-  auto arr = MakeArr<FooWithCachedBar<30>>(1'000'000);
-
-  for (auto _ : state) {
-    for (auto& foo : arr) {
-      benchmark::DoNotOptimize(foo.bar());
-    }
+    benchmark::DoNotOptimize(sum);
   }
 }
 
-static void BM_FooWithoutCachedBar(benchmark::State& state) {
-  auto arr = MakeArr<FooWithoutCachedBar<30>>(1'000'000);
+static void BM_Recompute(benchmark::State& state) {
+  constexpr int N = 10'000'000;
+  std::vector<WithoutCache> arr(N);
+  srand(42);
+  for (auto& e : arr) {
+    e.input = rand() % 1000;
+  }
 
   for (auto _ : state) {
-    for (auto& foo : arr) {
-      benchmark::DoNotOptimize(foo.bar());
+    int sum = 0;
+    for (int i = 0; i < N; ++i) {
+      sum += compute(arr[i].input);
     }
+    benchmark::DoNotOptimize(sum);
   }
 }
 
-BENCHMARK(BM_FooWithCachedBar);
-BENCHMARK(BM_FooWithoutCachedBar);
+BENCHMARK(BM_ReadCached);
+BENCHMARK(BM_Recompute);
 
 BENCHMARK_MAIN();

@@ -17,56 +17,53 @@ questions:
 - title: Memory vs Compute
   topic: Memory
   code1: |
-    struct Foo {
-      int values[30];
-      int cached_bar{0};
-
-      int bar() {
-        if (cached_bar == 0) {
-          for (int i = 0; i < 30; ++i) {
-            cached_bar += values[i] * i;
-          }
-        }
-
-        return cached_bar;
-      }
+    struct Elem {
+      int input;
+      int cached_result; // precomputed
     };
+    std::vector<Elem> arr(10'000'000);
 
-    std::vector<Foo> arr(1'000'000);
-
-    for (auto &foo : arr) {
-      Use(foo.bar());
+    for (auto &e : arr) {
+      sum += e.cached_result;
     }
   code2: |
-    struct Foo {
-      int values[30];
-
-      int bar() {
-        int res{0};
-        for (int i = 0; i < 30; ++i) {
-          res += values[i] * i;
-        }
-        return res;
-      }
+    struct Elem {
+      int input;
     };
+    std::vector<Elem> arr(10'000'000);
 
-    std::vector<Foo> arr(1'000'000);
-
-    for (auto &foo : arr) {
-      Use(foo.bar());
+    for (auto &e : arr) {
+      int x = e.input;
+      x = x * 7 + 13;
+      x = x ^ (x >> 3);
+      x = x * 31 + 7;
+      x = x ^ (x >> 5);
+      x = x * 127 + 63;
+      x = x ^ (x >> 7);
+      x = x * 17 + 5;
+      sum += x;
     }
   answer: 2
-  faster_factor: 1.24
+  faster_factor: 1.46
   code_url: https://github.com/hgminh95/fast/blob/main/bench/memory/vs_compute.cpp
   machine: AMD Ryzen 9
   explain: |
-    Memory access is often the bottleneck in modern programs, not computation. CPUs are fast, but
-    waiting for data from memory is slow.
+    Both produce the same result. The first reads a precomputed value from memory.
+    The second recomputes it from scratch every time — 7 multiplies, 3 adds, 3 XORs,
+    3 shifts per element.
 
-    In this example, the cached version stores the computed result. While this saves computation,
-    accessing the cached value still requires a memory read of `cached_bar` (which makes the struct
-    larger and thus fewer fit in a cache line). The recomputation version, on the other hand, is
-    pure computation on data already loaded into registers, which the CPU handles very efficiently.
+    Despite all that extra computation, the recompute version is faster. Why?
+
+    The cached struct is 8 bytes per element (80 MB total), exceeding L3 cache. The
+    recompute struct is 4 bytes (40 MB), fitting better in cache. The extra memory
+    traffic from loading the cached field costs more than the arithmetic.
+
+    On a modern CPU, integer arithmetic takes ~0.3 ns per operation, but a cache miss
+    to main memory takes ~100 ns. The CPU's out-of-order engine hides the computation
+    behind memory latency — the ALU work is effectively "free" while waiting for data.
+
+    Only cache results that are genuinely expensive to compute (e.g., cryptographic
+    hashes, transcendental math, I/O results).
 
     References:
 
@@ -475,14 +472,15 @@ questions:
         local += 1;
     }
     _ = counter.fetchAdd(local, .monotonic);
-- title: Atomic Contention
+- title: Mutex
   topic: Memory
   code1: |
     std::vector<std::thread> threads;
-    std::atomic<int> sum = 0;
+    std::mutex m;
+    int sum = 0;
 
     for (int i = 0; i < 4; ++i) {
-      threads.emplace_back([&arr, i, &sum]() {
+      threads.emplace_back([&arr, i, &m, &sum]() {
         int partial_sum = 0;
         auto start = i * arr.size() / 4;
         auto end = (i + 1) * arr.size() / 4;
@@ -490,6 +488,7 @@ questions:
           partial_sum += arr[i];
         }
 
+        std::lock_guard<std::mutex> lock(m);
         sum += partial_sum;
       });
     }
@@ -507,19 +506,22 @@ questions:
       });
     }
   answer: 1
-  faster_factor: 145.8
+  faster_factor: 97
   machine: AMD Ryzen 9
   code_url: https://github.com/hgminh95/fast/blob/main/bench/memory/lock.cpp
   explain: |
-    Lock-free atomic operations do not mean they are free. Under the hood, work needs to be
-    done whenever 2 cores read/write to the same cache line.
+    Lock-free does not mean free. The second version does an atomic `fetch_add` on
+    every iteration — 1 million atomic operations per thread. Each one requires a
+    cache line lock (MESI protocol), and under contention from 4 threads, the cache
+    line bounces between cores on nearly every access.
 
-    In the 2nd example, every thread atomically updates `sum` on every iteration, causing
-    constant cache line bouncing between cores. In the 1st example, each thread accumulates
-    locally and only does one atomic update at the end, reducing cross-core traffic by orders
-    of magnitude.
+    The mutex version accumulates in a plain local variable (no synchronization), then
+    locks the mutex once to update the shared sum. Total synchronization: 4 lock/unlock
+    pairs vs 4 million atomic ops.
 
-    To detect cache line contention, you can use `perf c2c`.
+    A well-designed mutex that protects a batch of work will outperform naive per-element
+    atomics. The key insight: atomics are fast for uncontended single operations, but under
+    heavy contention they serialize just like a mutex — except without the ability to batch.
 
         $ perf c2c record bazel-bin/memory/lock
         $ perf c2c report
