@@ -124,15 +124,9 @@
     <button id="btn-cpp" type="button" onclick="selectLang('cpp')" class="px-3 py-1 text-sm font-medium text-white bg-green-600 border border-green-500 rounded-s-lg hover:brightness-110 transition-all">
       C++
     </button>
-    {% if "code1_zig" in q %}
-    <button id="btn-zig" type="button" onclick="selectLang('zig')" class="px-3 py-1 text-sm font-medium text-gray-100 bg-transparent border border-gray-200 rounded-e-lg hover:brightness-110 transition-all">
-      Zig
-    </button>
-    {% else %}
     <button type="button" class="px-3 py-1 text-sm font-medium text-gray-900 bg-gray-500 border-t border-b border-gray-200 rounded-e-lg" disabled>
       Zig - WIP
     </button>
-    {% endif %}
   </div>
   {% endif %}
   <div class="flex items-center justify-center gap-2 text-xs">
