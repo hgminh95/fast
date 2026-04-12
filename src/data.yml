@@ -660,18 +660,17 @@ questions:
 - title: Memory Bank Conflict
   topic: Memory
   code1: |
-    for (auto i = 0u; i < arr.size(); ++i) {
-      sum += arr[i];
-    }
+    int matrix[31250][2048];
+    for (int i = 0; i < 31250; ++i)
+      for (int j = 0; j < 2048; ++j)
+        sum += matrix[i][j];
   code2: |
-    constexpr int ROW_SIZE = 8192 / sizeof(int);
-    int idx = 0;
-    for (auto i = 0u; i < arr.size(); ++i) {
-      sum += arr[idx];
-      idx = (idx + ROW_SIZE) % arr.size();
-    }
+    int matrix[31250][2048];
+    for (int j = 0; j < 2048; ++j)
+      for (int i = 0; i < 31250; ++i)
+        sum += matrix[i][j];
   answer: 1
-  faster_factor: 11.3
+  faster_factor: 19.7
   machine: AMD Ryzen 9
   code_url: https://github.com/hgminh95/fast/blob/main/bench/memory/recharge.cpp
   explain: |
@@ -687,15 +686,18 @@ questions:
     - [Wikipedia - DRAM](https://en.wikipedia.org/wiki/Dynamic_random-access_memory)
     - [What Every Programmer Should Know About Memory](https://people.freebsd.org/~lstewart/articles/cpumemory.pdf)
   code1_zig: |
-    for (arr) |x| {
-        sum +%= x;
+    var matrix: [31250][2048]i32 = undefined;
+    for (0..31250) |i| {
+        for (0..2048) |j| {
+            sum +%= matrix[i][j];
+        }
     }
   code2_zig: |
-    const ROW_SIZE = 8192 / @sizeOf(i32);
-    var idx: usize = 0;
-    for (0..arr.len) |_| {
-        sum +%= arr[idx];
-        idx = (idx + ROW_SIZE) % arr.len;
+    var matrix: [31250][2048]i32 = undefined;
+    for (0..2048) |j| {
+        for (0..31250) |i| {
+            sum +%= matrix[i][j];
+        }
     }
 - title: TLB Shoot Down
   topic: Memory
@@ -793,12 +795,13 @@ questions:
       sum += arr[i];
     }
   code2: |
-    char buf[N * sizeof(int64_t) + 3];
-    char* p = buf + 3;
-    for (int i = 0; i < N; ++i) {
-      int64_t v;
-      memcpy(&v, p + i * sizeof(int64_t), sizeof(int64_t));
-      sum += v;
+    struct __attribute__((packed)) Record {
+      char type;
+      int64_t value;
+    };
+    Record arr[1'000'000];
+    for (auto i = 0; i < 1'000'000; ++i) {
+      sum += arr[i].value;
     }
   answer: 1
   faster_factor: 1.06
@@ -825,52 +828,54 @@ questions:
         sum +%= x;
     }
   code2_zig: |
-    var buf: []u8 = // offset by 3 bytes
-    const ptr: [*]align(1) i64 = @ptrCast(buf.ptr + 3);
-    for (0..N) |i| {
-        sum +%= ptr[i];
+    const Record = packed struct {
+        type: u8,
+        value: i64,
+    };
+    var arr: [N]Record = undefined;
+    for (arr) |r| {
+        sum +%= r.value;
     }
-- title: Recharge
+- title: DRAM Refresh
   topic: Memory
+  wip: true
   code1: |
-    for (auto i = 0u; i < arr.size(); ++i) {
-      sum += arr[i];
-    }
+    // Pointer chasing, array fits in L1
+    int arr[1024];
+    for (int i = 0; i < N; ++i)
+      idx = arr[idx];
   code2: |
-    constexpr int ROW_SIZE = 8192 / sizeof(int);
-    int idx = 0;
-    for (auto i = 0u; i < arr.size(); ++i) {
-      sum += arr[idx];
-      idx = (idx + ROW_SIZE) % arr.size();
-    }
+    // Pointer chasing, array in DRAM
+    int arr[64'000'000];
+    for (int i = 0; i < N; ++i)
+      idx = arr[idx];
   answer: 1
-  faster_factor: 11.3
+  faster_factor: 3.4
   machine: AMD Ryzen 9
-  code_url: https://github.com/hgminh95/fast/blob/main/bench/memory/recharge.cpp
+  code_url: https://github.com/hgminh95/fast/blob/main/bench/memory/refresh.cpp
   explain: |
-    DRAM stores data as electrical charges in capacitors. After reading a row, the data is
-    temporarily held in a row buffer. Accessing the same row again (row buffer hit) is fast.
-    Accessing a different row requires precharging (closing) the current row and activating
-    the new one, adding significant latency.
+    DRAM cells store data as charge in capacitors, which leak over time. To prevent data
+    loss, the memory controller must periodically refresh every row (tREFI ≈ 7.8µs per row).
+    During refresh, accesses to the affected bank stall.
 
-    Sequential access naturally exploits row buffer locality. Large strides that cross row
-    boundaries cause row buffer misses, requiring the full precharge-activate-read cycle.
+    This causes periodic latency spikes in DRAM access. Pointer chasing through a large
+    random array (defeating prefetching) reveals the effect:
+
+    | Percentile | Latency |
+    | --- | --- |
+    | p50 | ~109 ns |
+    | p90 | ~119 ns |
+    | p99 | ~368 ns (3.4x median) |
+    | p99.9 | ~407 ns |
+
+    The p99 spikes (~300-400ns) occur roughly every 2-3µs in practice, because modern
+    DRAM controllers interleave refresh across banks — each bank refreshes at 7.8µs,
+    but with multiple banks, a refresh event happens more frequently overall.
 
     References:
 
-    - [Wikipedia - DRAM Row Buffer](https://en.wikipedia.org/wiki/Dynamic_random-access_memory#Memory_timing)
+    - [Wikipedia - DRAM Refresh](https://en.wikipedia.org/wiki/Memory_refresh)
     - [What Every Programmer Should Know About Memory](https://people.freebsd.org/~lstewart/articles/cpumemory.pdf)
-  code1_zig: |
-    for (arr) |x| {
-        sum +%= x;
-    }
-  code2_zig: |
-    const ROW_SIZE = 8192 / @sizeOf(i32);
-    var idx: usize = 0;
-    for (0..arr.len) |_| {
-        sum +%= arr[idx];
-        idx = (idx + ROW_SIZE) % arr.len;
-    }
 - title: Mooore Write
   topic: Memory
   code1: |
